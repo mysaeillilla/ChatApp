@@ -1,0 +1,131 @@
+
+# ==========================================
+# IDE and Editor
+# ==========================================
+
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.code-workspace
+
+# ==========================================
+# .NET / ASP.NET Core
+# ==========================================
+
+**/bin/
+**/obj/
+**/out/
+**/publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# Test results
+**/TestResults/
+*.trx
+
+# Logs
+*.log
+
+# Local configuration and secrets
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+# ==========================================
+# Flutter / Dart
+# ==========================================
+
+# Dependencies and generated files
+**/.dart_tool/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/build/
+
+# Generated plugin files
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+
+# Android generated files
+**/android/.gradle/
+**/android/local.properties
+**/android/captures/
+**/android/.cxx/
+
+# iOS generated files
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS generated files
+**/macos/Pods/
+
+# Flutter testing
+**/coverage/
+
+# ==========================================
+# Windows generated files
+# ==========================================
+
+**/windows/flutter/generated_*
+**/windows/runner/Debug/
+**/windows/runner/Release/
+**/windows/runner/Profile/
+
+# ==========================================
+# Environment variables and credentials
+# ==========================================
+
+.env
+.env.*
+!.env.example
+
+# Certificates and private keys
+*.pfx
+*.p12
+*.key
+*.pem
+
+# ==========================================
+# Database / Temporary files
+# ==========================================
+
+*.bak
+*.tmp
+*.temp
+*.dump
+
+# ==========================================
+# Operating System
+# ==========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================
+# Temporary files
+# ==========================================
+
+*.swp
+*.swo
+*~
+*.orig
+*.rej

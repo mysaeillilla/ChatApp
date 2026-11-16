@@ -1,0 +1,606 @@
+Folder PATH listing
+Volume serial number is B81A-2888
+D:.
++---.vscode
++---API
+¦   +---bin
+¦   ¦   +---Debug
+¦   ¦       +---net8.0
+¦   ¦           +---cs
+¦   ¦           +---de
+¦   ¦           +---es
+¦   ¦           +---fr
+¦   ¦           +---it
+¦   ¦           +---ja
+¦   ¦           +---ko
+¦   ¦           +---pl
+¦   ¦           +---pt-BR
+¦   ¦           +---ru
+¦   ¦           +---runtimes
+¦   ¦           ¦   +---browser-wasm
+¦   ¦           ¦   ¦   +---nativeassets
+¦   ¦           ¦   ¦       +---net8.0
+¦   ¦           ¦   +---linux-arm
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-arm64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-armel
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-mips64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-musl-arm
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-musl-arm64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-musl-x64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-ppc64le
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-s390x
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-x64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---linux-x86
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---maccatalyst-arm64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---maccatalyst-x64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---osx-arm64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---osx-x64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---win-arm
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---win-arm64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---win-x64
+¦   ¦           ¦   ¦   +---native
+¦   ¦           ¦   +---win-x86
+¦   ¦           ¦       +---native
+¦   ¦           +---tr
+¦   ¦           +---zh-Hans
+¦   ¦           +---zh-Hant
+¦   +---Controllers
+¦   +---Data
+¦   +---DTOs
+¦   +---Entities
+¦   +---Hubs
+¦   +---obj
+¦   ¦   +---Debug
+¦   ¦       +---net8.0
+¦   ¦           +---ref
+¦   ¦           +---refint
+¦   ¦           +---staticwebassets
+¦   +---Properties
+¦   +---Services
++---frontend
+    +---.dart_tool
+    ¦   +---chrome-device
+    ¦   ¦   +---Default
+    ¦   ¦       +---AutofillStrikeDatabase
+    ¦   ¦       +---blob_storage
+    ¦   ¦       ¦   +---cd54b65a-b6c4-4fd2-8727-b3a9228ef70c
+    ¦   ¦       +---BudgetDatabase
+    ¦   ¦       +---chrome_cart_db
+    ¦   ¦       +---ClientCertificates
+    ¦   ¦       +---commerce_subscription_db
+    ¦   ¦       +---discounts_db
+    ¦   ¦       +---discount_infos_db
+    ¦   ¦       +---Download Service
+    ¦   ¦       ¦   +---EntryDB
+    ¦   ¦       ¦   +---Files
+    ¦   ¦       +---Extension Rules
+    ¦   ¦       +---Extension Scripts
+    ¦   ¦       +---Extension State
+    ¦   ¦       +---Feature Engagement Tracker
+    ¦   ¦       ¦   +---AvailabilityDB
+    ¦   ¦       ¦   +---EventDB
+    ¦   ¦       +---Local Storage
+    ¦   ¦       ¦   +---leveldb
+    ¦   ¦       +---Network
+    ¦   ¦       +---optimization_guide_hint_cache_store
+    ¦   ¦       +---parcel_tracking_db
+    ¦   ¦       +---PersistentOriginTrials
+    ¦   ¦       +---Safe Browsing Network
+    ¦   ¦       +---Segmentation Platform
+    ¦   ¦       ¦   +---SegmentInfoDB
+    ¦   ¦       ¦   +---SignalDB
+    ¦   ¦       ¦   +---SignalStorageConfigDB
+    ¦   ¦       +---Service Worker
+    ¦   ¦       ¦   +---Database
+    ¦   ¦       +---Session Storage
+    ¦   ¦       +---Sessions
+    ¦   ¦       +---Sessions_Encrypted
+    ¦   ¦       +---Shared Dictionary
+    ¦   ¦       ¦   +---cache
+    ¦   ¦       ¦       +---index-dir
+    ¦   ¦       +---shared_proto_db
+    ¦   ¦       ¦   +---metadata
+    ¦   ¦       +---Site Characteristics Database
+    ¦   ¦       +---Sync Data
+    ¦   ¦       ¦   +---LevelDB
+    ¦   ¦       +---WebStorage
+    ¦   +---dartpad
+    ¦   +---flutter_build
+    ¦   ¦   +---3ca3cf70da529aaabbebb1e8c44f5691
+    ¦   +---hooks_runner
+    ¦       +---objective_c
+    ¦       ¦   +---337ce265dc
+    ¦       ¦   ¦   +---out
+    ¦       ¦   +---86fff9fe25
+    ¦       ¦       +---out
+    ¦       +---shared
+    ¦           +---objective_c
+    ¦               +---build
+    ¦                   +---337ce265dc
+    ¦                   +---86fff9fe25
+    +---.idea
+    ¦   +---libraries
+    ¦   +---runConfigurations
+    +---android
+    ¦   +---app
+    ¦   ¦   +---src
+    ¦   ¦       +---debug
+    ¦   ¦       +---main
+    ¦   ¦       ¦   +---java
+    ¦   ¦       ¦   ¦   +---io
+    ¦   ¦       ¦   ¦       +---flutter
+    ¦   ¦       ¦   ¦           +---plugins
+    ¦   ¦       ¦   +---kotlin
+    ¦   ¦       ¦   ¦   +---com
+    ¦   ¦       ¦   ¦       +---example
+    ¦   ¦       ¦   ¦           +---frontend
+    ¦   ¦       ¦   +---res
+    ¦   ¦       ¦       +---drawable
+    ¦   ¦       ¦       +---drawable-v21
+    ¦   ¦       ¦       +---mipmap-hdpi
+    ¦   ¦       ¦       +---mipmap-mdpi
+    ¦   ¦       ¦       +---mipmap-xhdpi
+    ¦   ¦       ¦       +---mipmap-xxhdpi
+    ¦   ¦       ¦       +---mipmap-xxxhdpi
+    ¦   ¦       ¦       +---values
+    ¦   ¦       ¦       +---values-night
+    ¦   ¦       +---profile
+    ¦   +---gradle
+    ¦       +---wrapper
+    +---build
+    ¦   +---d3e194ec65a561fac4e0462511b6deea
+    ¦   +---flutter_assets
+    ¦   ¦   +---fonts
+    ¦   ¦   +---packages
+    ¦   ¦   ¦   +---cupertino_icons
+    ¦   ¦   ¦   ¦   +---assets
+    ¦   ¦   ¦   +---material_ui
+    ¦   ¦   ¦       +---shaders
+    ¦   ¦   +---shaders
+    ¦   +---native_assets
+    ¦   ¦   +---windows
+    ¦   +---windows
+    ¦       +---x64
+    ¦           +---ALL_BUILD.dir
+    ¦           ¦   +---Debug
+    ¦           ¦   +---Profile
+    ¦           ¦   +---Release
+    ¦           +---CMakeFiles
+    ¦           ¦   +---0ddc485e9463ee658e2407a17ce7030d
+    ¦           ¦   +---4.3.1-msvc1
+    ¦           ¦   ¦   +---CompilerIdC
+    ¦           ¦   ¦   ¦   +---Debug
+    ¦           ¦   ¦   ¦   ¦   +---CompilerIdC.tlog
+    ¦           ¦   ¦   ¦   +---tmp
+    ¦           ¦   ¦   +---CompilerIdCXX
+    ¦           ¦   ¦   ¦   +---Debug
+    ¦           ¦   ¦   ¦   ¦   +---CompilerIdCXX.tlog
+    ¦           ¦   ¦   ¦   +---tmp
+    ¦           ¦   ¦   +---VCTargetsPath
+    ¦           ¦   ¦   ¦   +---x64
+    ¦           ¦   ¦   ¦       +---Debug
+    ¦           ¦   ¦   ¦           +---VCTargetsPath.tlog
+    ¦           ¦   ¦   +---x64
+    ¦           ¦   ¦       +---Debug
+    ¦           ¦   +---65734edd617d9f945080d3d8a66035d3
+    ¦           ¦   +---79c435219f0d982745d287df943ae2c5
+    ¦           ¦   +---dba5174ecce63b29e2413faeda3d8ad1
+    ¦           ¦   +---efffd104042848acf0a3de24e3780ac0
+    ¦           ¦   +---f6e4648857168a2ce21cec41ffefab7c
+    ¦           ¦   +---f98ac38980c2a451b3d42fd756cbe4fd
+    ¦           ¦   +---pkgRedirects
+    ¦           +---flutter
+    ¦           ¦   +---CMakeFiles
+    ¦           ¦   +---flutter_assemble.dir
+    ¦           ¦   ¦   +---Debug
+    ¦           ¦   ¦   +---Profile
+    ¦           ¦   ¦   +---Release
+    ¦           ¦   +---flutter_wrapper_app.dir
+    ¦           ¦   ¦   +---Debug
+    ¦           ¦   ¦   +---Profile
+    ¦           ¦   ¦   +---Release
+    ¦           ¦   +---flutter_wrapper_plugin.dir
+    ¦           ¦   ¦   +---Debug
+    ¦           ¦   ¦   +---Profile
+    ¦           ¦   ¦   +---Release
+    ¦           ¦   +---INSTALL.dir
+    ¦           ¦   ¦   +---Debug
+    ¦           ¦   ¦   +---Profile
+    ¦           ¦   ¦   +---Release
+    ¦           ¦   +---x64
+    ¦           ¦       +---Debug
+    ¦           ¦           +---flutter_assemble
+    ¦           ¦               +---flutter_assemble.tlog
+    ¦           +---INSTALL.dir
+    ¦           ¦   +---Debug
+    ¦           ¦   +---Profile
+    ¦           ¦   +---Release
+    ¦           +---plugins
+    ¦           ¦   +---flutter_secure_storage_windows
+    ¦           ¦   ¦   +---ALL_BUILD.dir
+    ¦           ¦   ¦   ¦   +---Debug
+    ¦           ¦   ¦   ¦   +---Profile
+    ¦           ¦   ¦   ¦   +---Release
+    ¦           ¦   ¦   +---CMakeFiles
+    ¦           ¦   ¦   +---flutter_secure_storage_windows_plugin.dir
+    ¦           ¦   ¦   ¦   +---Debug
+    ¦           ¦   ¦   ¦   +---Profile
+    ¦           ¦   ¦   ¦   +---Release
+    ¦           ¦   ¦   +---INSTALL.dir
+    ¦           ¦   ¦       +---Debug
+    ¦           ¦   ¦       +---Profile
+    ¦           ¦   ¦       +---Release
+    ¦           ¦   +---jni
+    ¦           ¦       +---ALL_BUILD.dir
+    ¦           ¦       ¦   +---Debug
+    ¦           ¦       ¦   +---Profile
+    ¦           ¦       ¦   +---Release
+    ¦           ¦       +---CMakeFiles
+    ¦           ¦       +---INSTALL.dir
+    ¦           ¦       ¦   +---Debug
+    ¦           ¦       ¦   +---Profile
+    ¦           ¦       ¦   +---Release
+    ¦           ¦       +---shared
+    ¦           ¦           +---ALL_BUILD.dir
+    ¦           ¦           ¦   +---Debug
+    ¦           ¦           ¦   +---Profile
+    ¦           ¦           ¦   +---Release
+    ¦           ¦           +---CMakeFiles
+    ¦           ¦           +---INSTALL.dir
+    ¦           ¦               +---Debug
+    ¦           ¦               +---Profile
+    ¦           ¦               +---Release
+    ¦           +---runner
+    ¦           ¦   +---ALL_BUILD.dir
+    ¦           ¦   ¦   +---Debug
+    ¦           ¦   ¦   +---Profile
+    ¦           ¦   ¦   +---Release
+    ¦           ¦   +---CMakeFiles
+    ¦           ¦   +---frontend.dir
+    ¦           ¦   ¦   +---Debug
+    ¦           ¦   ¦   +---Profile
+    ¦           ¦   ¦   +---Release
+    ¦           ¦   +---INSTALL.dir
+    ¦           ¦       +---Debug
+    ¦           ¦       +---Profile
+    ¦           ¦       +---Release
+    ¦           +---x64
+    ¦           ¦   +---Debug
+    ¦           ¦       +---ZERO_CHECK
+    ¦           ¦           +---ZERO_CHECK.tlog
+    ¦           +---ZERO_CHECK.dir
+    ¦               +---Debug
+    ¦               +---Profile
+    ¦               +---Release
+    +---ios
+    ¦   +---Flutter
+    ¦   ¦   +---ephemeral
+    ¦   ¦       +---Packages
+    ¦   ¦           +---.packages
+    ¦   ¦           +---FlutterGeneratedPluginSwiftPackage
+    ¦   ¦               +---Sources
+    ¦   ¦                   +---FlutterGeneratedPluginSwiftPackage
+    ¦   +---Runner
+    ¦   ¦   +---Assets.xcassets
+    ¦   ¦   ¦   +---AppIcon.appiconset
+    ¦   ¦   ¦   +---LaunchImage.imageset
+    ¦   ¦   +---Base.lproj
+    ¦   +---Runner.xcodeproj
+    ¦   ¦   +---project.xcworkspace
+    ¦   ¦   ¦   +---xcshareddata
+    ¦   ¦   +---xcshareddata
+    ¦   ¦       +---xcschemes
+    ¦   +---Runner.xcworkspace
+    ¦   ¦   +---xcshareddata
+    ¦   +---RunnerTests
+    +---lib
+    ¦   +---core
+    ¦       +---constants
+    ¦       +---models
+    ¦       +---network
+    ¦       +---providers
+    ¦       +---screens
+    ¦       +---services
+    ¦       +---widgets
+    +---linux
+    ¦   +---flutter
+    ¦   ¦   +---ephemeral
+    ¦   ¦       +---.plugin_symlinks
+    ¦   ¦           +---flutter_secure_storage_linux
+    ¦   ¦           ¦   +---linux
+    ¦   ¦           ¦       +---include
+    ¦   ¦           ¦       ¦   +---flutter_secure_storage_linux
+    ¦   ¦           ¦       +---test
+    ¦   ¦           +---jni
+    ¦   ¦           ¦   +---android
+    ¦   ¦           ¦   ¦   +---src
+    ¦   ¦           ¦   ¦       +---main
+    ¦   ¦           ¦   ¦           +---java
+    ¦   ¦           ¦   ¦               +---com
+    ¦   ¦           ¦   ¦                   +---github
+    ¦   ¦           ¦   ¦                       +---dart_lang
+    ¦   ¦           ¦   ¦                           +---jni
+    ¦   ¦           ¦   +---bin
+    ¦   ¦           ¦   +---example
+    ¦   ¦           ¦   ¦   +---android
+    ¦   ¦           ¦   ¦   ¦   +---app
+    ¦   ¦           ¦   ¦   ¦   ¦   +---src
+    ¦   ¦           ¦   ¦   ¦   ¦       +---debug
+    ¦   ¦           ¦   ¦   ¦   ¦       +---main
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   +---java
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦   +---com
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦   ¦   +---github
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦   ¦       +---dart_lang
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦   ¦           +---jni_example
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦   +---io
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦       +---flutter
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦           +---plugins
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   +---kotlin
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦   +---dev
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦       +---dart
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   ¦           +---jni_example
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦   +---res
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---drawable
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---drawable-v21
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---mipmap-hdpi
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---mipmap-mdpi
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---mipmap-xhdpi
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---mipmap-xxhdpi
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---mipmap-xxxhdpi
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---values
+    ¦   ¦           ¦   ¦   ¦   ¦       ¦       +---values-night
+    ¦   ¦           ¦   ¦   ¦   ¦       +---profile
+    ¦   ¦           ¦   ¦   ¦   +---gradle
+    ¦   ¦           ¦   ¦   ¦       +---wrapper
+    ¦   ¦           ¦   ¦   +---integration_test
+    ¦   ¦           ¦   ¦   +---lib
+    ¦   ¦           ¦   ¦   +---linux
+    ¦   ¦           ¦   ¦   ¦   +---flutter
+    ¦   ¦           ¦   ¦   +---macos
+    ¦   ¦           ¦   ¦   ¦   +---Flutter
+    ¦   ¦           ¦   ¦   ¦   +---Runner
+    ¦   ¦           ¦   ¦   ¦   ¦   +---Assets.xcassets
+    ¦   ¦           ¦   ¦   ¦   ¦   ¦   +---AppIcon.appiconset
+    ¦   ¦           ¦   ¦   ¦   ¦   +---Base.lproj
+    ¦   ¦           ¦   ¦   ¦   ¦   +---Configs
+    ¦   ¦           ¦   ¦   ¦   +---Runner.xcodeproj
+    ¦   ¦           ¦   ¦   ¦   ¦   +---project.xcworkspace
+    ¦   ¦           ¦   ¦   ¦   ¦   ¦   +---xcshareddata
+    ¦   ¦           ¦   ¦   ¦   ¦   +---xcshareddata
+    ¦   ¦           ¦   ¦   ¦   ¦       +---xcschemes
+    ¦   ¦           ¦   ¦   ¦   +---Runner.xcworkspace
+    ¦   ¦           ¦   ¦   ¦       +---xcshareddata
+    ¦   ¦           ¦   ¦   +---windows
+    ¦   ¦           ¦   ¦       +---flutter
+    ¦   ¦           ¦   ¦       +---runner
+    ¦   ¦           ¦   ¦           +---resources
+    ¦   ¦           ¦   +---java
+    ¦   ¦           ¦   ¦   +---gradle
+    ¦   ¦           ¦   ¦   ¦   +---wrapper
+    ¦   ¦           ¦   ¦   +---src
+    ¦   ¦           ¦   ¦   ¦   +---main
+    ¦   ¦           ¦   ¦   ¦       +---java
+    ¦   ¦           ¦   ¦   ¦           +---com
+    ¦   ¦           ¦   ¦   ¦               +---github
+    ¦   ¦           ¦   ¦   ¦                   +---dart_lang
+    ¦   ¦           ¦   ¦   ¦                       +---jni
+    ¦   ¦           ¦   ¦   +---~
+    ¦   ¦           ¦   ¦       +---dev
+    ¦   ¦           ¦   ¦           +---native
+    ¦   ¦           ¦   ¦           ¦   +---native
+    ¦   ¦           ¦   ¦           ¦       +---pkgs
+    ¦   ¦           ¦   ¦           ¦           +---jnigen
+    ¦   ¦           ¦   ¦           ¦               +---example
+    ¦   ¦           ¦   ¦           ¦                   +---pdfbox_plugin
+    ¦   ¦           ¦   ¦           ¦                       +---dart_example
+    ¦   ¦           ¦   ¦           +---native2
+    ¦   ¦           ¦   ¦               +---pkgs
+    ¦   ¦           ¦   ¦                   +---jnigen
+    ¦   ¦           ¦   ¦                       +---example
+    ¦   ¦           ¦   ¦                           +---pdfbox_plugin
+    ¦   ¦           ¦   ¦                               +---dart_example
+    ¦   ¦           ¦   +---lib
+    ¦   ¦           ¦   ¦   +---src
+    ¦   ¦           ¦   ¦       +---build_util
+    ¦   ¦           ¦   ¦       +---lang
+    ¦   ¦           ¦   ¦       +---nio
+    ¦   ¦           ¦   ¦       +---third_party
+    ¦   ¦           ¦   ¦       +---util
+    ¦   ¦           ¦   +---linux
+    ¦   ¦           ¦   +---src
+    ¦   ¦           ¦   ¦   +---include
+    ¦   ¦           ¦   ¦   ¦   +---bin
+    ¦   ¦           ¦   ¦   ¦   +---internal
+    ¦   ¦           ¦   ¦   +---third_party
+    ¦   ¦           ¦   +---test
+    ¦   ¦           ¦   ¦   +---test_util
+    ¦   ¦           ¦   ¦   +---version_check
+    ¦   ¦           ¦   +---third_party
+    ¦   ¦           ¦   +---windows
+    ¦   ¦           +---path_provider_linux
+    ¦   ¦               +---example
+    ¦   ¦               ¦   +---integration_test
+    ¦   ¦               ¦   +---lib
+    ¦   ¦               ¦   +---linux
+    ¦   ¦               ¦   ¦   +---flutter
+    ¦   ¦               ¦   +---test_driver
+    ¦   ¦               +---lib
+    ¦   ¦               ¦   +---src
+    ¦   ¦               +---test
+    ¦   +---runner
+    +---macos
+    ¦   +---Flutter
+    ¦   ¦   +---ephemeral
+    ¦   ¦       +---Packages
+    ¦   ¦           +---.packages
+    ¦   ¦           +---FlutterGeneratedPluginSwiftPackage
+    ¦   ¦               +---Sources
+    ¦   ¦                   +---FlutterGeneratedPluginSwiftPackage
+    ¦   +---Runner
+    ¦   ¦   +---Assets.xcassets
+    ¦   ¦   ¦   +---AppIcon.appiconset
+    ¦   ¦   +---Base.lproj
+    ¦   ¦   +---Configs
+    ¦   +---Runner.xcodeproj
+    ¦   ¦   +---project.xcworkspace
+    ¦   ¦   ¦   +---xcshareddata
+    ¦   ¦   +---xcshareddata
+    ¦   ¦       +---xcschemes
+    ¦   +---Runner.xcworkspace
+    ¦   ¦   +---xcshareddata
+    ¦   +---RunnerTests
+    +---test
+    +---web
+    ¦   +---icons
+    +---windows
+        +---flutter
+        ¦   +---ephemeral
+        ¦       +---.plugin_symlinks
+        ¦       ¦   +---flutter_secure_storage_windows
+        ¦       ¦   ¦   +---lib
+        ¦       ¦   ¦   ¦   +---src
+        ¦       ¦   ¦   +---test
+        ¦       ¦   ¦   +---windows
+        ¦       ¦   ¦       +---include
+        ¦       ¦   ¦       ¦   +---flutter_secure_storage_windows
+        ¦       ¦   ¦       +---test
+        ¦       ¦   +---jni
+        ¦       ¦   ¦   +---android
+        ¦       ¦   ¦   ¦   +---src
+        ¦       ¦   ¦   ¦       +---main
+        ¦       ¦   ¦   ¦           +---java
+        ¦       ¦   ¦   ¦               +---com
+        ¦       ¦   ¦   ¦                   +---github
+        ¦       ¦   ¦   ¦                       +---dart_lang
+        ¦       ¦   ¦   ¦                           +---jni
+        ¦       ¦   ¦   +---bin
+        ¦       ¦   ¦   +---example
+        ¦       ¦   ¦   ¦   +---android
+        ¦       ¦   ¦   ¦   ¦   +---app
+        ¦       ¦   ¦   ¦   ¦   ¦   +---src
+        ¦       ¦   ¦   ¦   ¦   ¦       +---debug
+        ¦       ¦   ¦   ¦   ¦   ¦       +---main
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   +---java
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦   +---com
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦   ¦   +---github
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦   ¦       +---dart_lang
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦   ¦           +---jni_example
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦   +---io
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦       +---flutter
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦           +---plugins
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   +---kotlin
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦   +---dev
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦       +---dart
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   ¦           +---jni_example
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦   +---res
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---drawable
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---drawable-v21
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---mipmap-hdpi
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---mipmap-mdpi
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---mipmap-xhdpi
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---mipmap-xxhdpi
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---mipmap-xxxhdpi
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---values
+        ¦       ¦   ¦   ¦   ¦   ¦       ¦       +---values-night
+        ¦       ¦   ¦   ¦   ¦   ¦       +---profile
+        ¦       ¦   ¦   ¦   ¦   +---gradle
+        ¦       ¦   ¦   ¦   ¦       +---wrapper
+        ¦       ¦   ¦   ¦   +---integration_test
+        ¦       ¦   ¦   ¦   +---lib
+        ¦       ¦   ¦   ¦   +---linux
+        ¦       ¦   ¦   ¦   ¦   +---flutter
+        ¦       ¦   ¦   ¦   +---macos
+        ¦       ¦   ¦   ¦   ¦   +---Flutter
+        ¦       ¦   ¦   ¦   ¦   +---Runner
+        ¦       ¦   ¦   ¦   ¦   ¦   +---Assets.xcassets
+        ¦       ¦   ¦   ¦   ¦   ¦   ¦   +---AppIcon.appiconset
+        ¦       ¦   ¦   ¦   ¦   ¦   +---Base.lproj
+        ¦       ¦   ¦   ¦   ¦   ¦   +---Configs
+        ¦       ¦   ¦   ¦   ¦   +---Runner.xcodeproj
+        ¦       ¦   ¦   ¦   ¦   ¦   +---project.xcworkspace
+        ¦       ¦   ¦   ¦   ¦   ¦   ¦   +---xcshareddata
+        ¦       ¦   ¦   ¦   ¦   ¦   +---xcshareddata
+        ¦       ¦   ¦   ¦   ¦   ¦       +---xcschemes
+        ¦       ¦   ¦   ¦   ¦   +---Runner.xcworkspace
+        ¦       ¦   ¦   ¦   ¦       +---xcshareddata
+        ¦       ¦   ¦   ¦   +---windows
+        ¦       ¦   ¦   ¦       +---flutter
+        ¦       ¦   ¦   ¦       +---runner
+        ¦       ¦   ¦   ¦           +---resources
+        ¦       ¦   ¦   +---java
+        ¦       ¦   ¦   ¦   +---gradle
+        ¦       ¦   ¦   ¦   ¦   +---wrapper
+        ¦       ¦   ¦   ¦   +---src
+        ¦       ¦   ¦   ¦   ¦   +---main
+        ¦       ¦   ¦   ¦   ¦       +---java
+        ¦       ¦   ¦   ¦   ¦           +---com
+        ¦       ¦   ¦   ¦   ¦               +---github
+        ¦       ¦   ¦   ¦   ¦                   +---dart_lang
+        ¦       ¦   ¦   ¦   ¦                       +---jni
+        ¦       ¦   ¦   ¦   +---~
+        ¦       ¦   ¦   ¦       +---dev
+        ¦       ¦   ¦   ¦           +---native
+        ¦       ¦   ¦   ¦           ¦   +---native
+        ¦       ¦   ¦   ¦           ¦       +---pkgs
+        ¦       ¦   ¦   ¦           ¦           +---jnigen
+        ¦       ¦   ¦   ¦           ¦               +---example
+        ¦       ¦   ¦   ¦           ¦                   +---pdfbox_plugin
+        ¦       ¦   ¦   ¦           ¦                       +---dart_example
+        ¦       ¦   ¦   ¦           +---native2
+        ¦       ¦   ¦   ¦               +---pkgs
+        ¦       ¦   ¦   ¦                   +---jnigen
+        ¦       ¦   ¦   ¦                       +---example
+        ¦       ¦   ¦   ¦                           +---pdfbox_plugin
+        ¦       ¦   ¦   ¦                               +---dart_example
+        ¦       ¦   ¦   +---lib
+        ¦       ¦   ¦   ¦   +---src
+        ¦       ¦   ¦   ¦       +---build_util
+        ¦       ¦   ¦   ¦       +---lang
+        ¦       ¦   ¦   ¦       +---nio
+        ¦       ¦   ¦   ¦       +---third_party
+        ¦       ¦   ¦   ¦       +---util
+        ¦       ¦   ¦   +---linux
+        ¦       ¦   ¦   +---src
+        ¦       ¦   ¦   ¦   +---include
+        ¦       ¦   ¦   ¦   ¦   +---bin
+        ¦       ¦   ¦   ¦   ¦   +---internal
+        ¦       ¦   ¦   ¦   +---third_party
+        ¦       ¦   ¦   +---test
+        ¦       ¦   ¦   ¦   +---test_util
+        ¦       ¦   ¦   ¦   +---version_check
+        ¦       ¦   ¦   +---third_party
+        ¦       ¦   ¦   +---windows
+        ¦       ¦   +---path_provider_windows
+        ¦       ¦       +---example
+        ¦       ¦       ¦   +---integration_test
+        ¦       ¦       ¦   +---lib
+        ¦       ¦       ¦   +---test_driver
+        ¦       ¦       ¦   +---windows
+        ¦       ¦       ¦       +---flutter
+        ¦       ¦       ¦       +---runner
+        ¦       ¦       ¦           +---resources
+        ¦       ¦       +---lib
+        ¦       ¦       ¦   +---src
+        ¦       ¦       +---test
+        ¦       +---cpp_client_wrapper
+        ¦           +---include
+        ¦               +---flutter
+        +---runner
+            +---resources
