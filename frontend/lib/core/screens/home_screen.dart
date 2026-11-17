@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/widgets/unread_notifier.dart';
 
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -28,6 +29,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UnreadNotifier.check();
+    });
     _scrollController.addListener(() {
       final position = _scrollController.position;
       if (position.pixels >= position.maxScrollExtent - 200) {
@@ -46,7 +51,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _logout() async {
     await ChatHubService.instance.disconnect();
     await ref.read(authProvider).logout();
-
+    UnreadNotifier.reset();
+    await ChatHubService.instance.disconnect();
     if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(

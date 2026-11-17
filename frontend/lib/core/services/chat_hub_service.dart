@@ -28,8 +28,8 @@ class PresenceEvent {
 
 /// One shared SignalR connection for the whole app.
 ///
-/// Server -> client events are exposed as broadcast streams;
-/// client -> server calls are plain async methods.
+/// Server -> client events are exposed as broadcast streams.
+/// Client -> server calls are plain async methods.
 class ChatHubService {
   ChatHubService._();
 
@@ -38,14 +38,30 @@ class ChatHubService {
   HubConnection? _connection;
   Future<void>? _starting;
 
-  final _messages = StreamController<MessageModel>.broadcast();
-  final _typing = StreamController<TypingEvent>.broadcast();
-  final _presence = StreamController<PresenceEvent>.broadcast();
-  final _reconnected = StreamController<void>.broadcast();
+  // ---------------------------------------------------------------
+  // Server -> client event streams
+  // ---------------------------------------------------------------
 
+  final StreamController<MessageModel> _messages =
+      StreamController<MessageModel>.broadcast();
+
+  final StreamController<TypingEvent> _typing =
+      StreamController<TypingEvent>.broadcast();
+
+  final StreamController<PresenceEvent> _presence =
+      StreamController<PresenceEvent>.broadcast();
+
+  final StreamController<void> _reconnected =
+      StreamController<void>.broadcast();
+
+  /// Incoming messages.
+  /// Can be listened to by multiple widgets.
   Stream<MessageModel> get onMessage => _messages.stream;
+
   Stream<TypingEvent> get onTyping => _typing.stream;
+
   Stream<PresenceEvent> get onPresence => _presence.stream;
+
   Stream<void> get onReconnected => _reconnected.stream;
 
   bool get isConnected => _connection?.state == HubConnectionState.Connected;
@@ -57,11 +73,13 @@ class ChatHubService {
   /// Safe to call many times; concurrent callers share the same attempt.
   Future<void> connect() {
     if (isConnected) return Future.value();
+
     return _starting ??= _start().whenComplete(() => _starting = null);
   }
 
   Future<void> _start() async {
     final hub = _connection ??= _build();
+
     if (hub.state == HubConnectionState.Disconnected) {
       await hub.start();
     }
@@ -70,6 +88,7 @@ class ChatHubService {
   Future<void> disconnect() async {
     final hub = _connection;
     _connection = null;
+
     await hub?.stop();
   }
 
@@ -78,7 +97,7 @@ class ChatHubService {
         .withUrl(
           ApiConstants.hubUrl,
           options: HttpConnectionOptions(
-            // Sent as ?access_token=... on the WebSocket, which the API reads.
+            // Sent as ?access_token=... on the WebSocket.
             accessTokenFactory: () async =>
                 (await TokenStorage.getToken()) ?? '',
           ),
@@ -86,14 +105,30 @@ class ChatHubService {
         .withAutomaticReconnect()
         .build();
 
+    // -------------------------------------------------------------
+    // ReceiveMessage
+    // -------------------------------------------------------------
+
     hub.on('ReceiveMessage', (args) {
       final map = _firstMap(args);
-      if (map != null) _messages.add(MessageModel.fromJson(map));
+
+      if (map != null) {
+        final message = MessageModel.fromJson(map);
+
+        // Publish incoming message to all listeners.
+        _messages.add(message);
+      }
     });
+
+    // -------------------------------------------------------------
+    // UserTyping
+    // -------------------------------------------------------------
 
     hub.on('UserTyping', (args) {
       final map = _firstMap(args);
+
       if (map == null) return;
+
       _typing.add(
         TypingEvent(
           conversationId: map['conversationId'] as String,
@@ -102,10 +137,17 @@ class ChatHubService {
       );
     });
 
+    // -------------------------------------------------------------
+    // PresenceChanged
+    // -------------------------------------------------------------
+
     hub.on('PresenceChanged', (args) {
       final map = _firstMap(args);
+
       if (map == null) return;
+
       final lastSeen = map['lastSeen'] as String?;
+
       _presence.add(
         PresenceEvent(
           userId: map['userId'] as String,
@@ -115,19 +157,34 @@ class ChatHubService {
       );
     });
 
+    // -------------------------------------------------------------
+    // Reconnected
+    // -------------------------------------------------------------
+
     hub.onreconnected(({connectionId}) => _reconnected.add(null));
 
     return hub;
   }
 
+  // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
+
   Map<String, dynamic>? _firstMap(List<Object?>? args) {
     if (args == null || args.isEmpty) return null;
+
     final first = args.first;
-    return first is Map ? Map<String, dynamic>.from(first) : null;
+
+    if (first is Map) {
+      return Map<String, dynamic>.from(first);
+    }
+
+    return null;
   }
 
   Future<Object?> _invoke(String method, List<Object> args) async {
     await connect();
+
     return _connection!.invoke(method, args: args);
   }
 
@@ -135,7 +192,8 @@ class ChatHubService {
   // Client -> server
   // ---------------------------------------------------------------
 
-  /// Hub: SendMessage(SendMessageRequest). Returns the saved message.
+  /// Hub: SendMessage(SendMessageRequest).
+  /// Returns the saved message.
   Future<MessageModel> sendMessage(
     String conversationId,
     String content, {
@@ -152,13 +210,28 @@ class ChatHubService {
     return MessageModel.fromJson(Map<String, dynamic>.from(result as Map));
   }
 
-  /// Hub: MarkRead(conversationId) - also marks the messages as delivered.
+  /// Hub: MarkRead(conversationId).
   Future<void> markRead(String conversationId) async {
     await _invoke('MarkRead', [conversationId]);
   }
 
-  /// Hub: Typing(conversationId)
+  /// Hub: Typing(conversationId).
   Future<void> typing(String conversationId) async {
     await _invoke('Typing', [conversationId]);
+  }
+
+  // ---------------------------------------------------------------
+  // Stream cleanup
+  // ---------------------------------------------------------------
+
+  /// Call only when permanently disposing the shared service,
+  /// not when navigating away from individual screens.
+  Future<void> dispose() async {
+    await disconnect();
+
+    await _messages.close();
+    await _typing.close();
+    await _presence.close();
+    await _reconnected.close();
   }
 }
