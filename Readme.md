@@ -1,5 +1,806 @@
 To build a **Chat Application using Flutter**, I recommend following a modular architecture where the Flutter application handles the UI, a backend API manages business logic, and a real-time communication service handles instant messaging.
 
+# Chat App
+
+A real-time one-to-one chat application.
+
+* **Backend:** ASP.NET Core 8 Web API + SignalR + EF Core (PostgreSQL), JWT authentication
+* **Frontend:** Flutter (Riverpod, Dio, SignalR client)
+
+Users register and log in, see a searchable list of everyone else, and tap a user to chat in real time. The list shows who is online and puts a notification bell with a count next to users who sent unread messages.
+
+---
+
+## Features
+
+* Register / login with username **or** email and password (JWT)
+* Searchable, paginated user list with live online / last-seen status
+* 1:1 conversations, created on demand and reused afterwards
+* Real-time messaging over SignalR (all of a user's devices stay in sync)
+* Message history with "load older messages" paging
+* Typing indicator
+* Delivered / read receipts stored per recipient (`MessageReceipts`)
+* Unread count per conversation, shown as a bell + badge on the home screen
+* Enter sends the message
+* File attachment upload endpoint (see [Known limitations](https://claude.ai/chat/194c5520-de78-4071-8fe4-4759c02519c0#known-limitations))
+
+---
+
+## Tech stack
+
+| Layer               | Technology                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| API                 | .NET 8, ASP.NET Core Web API                                                        |
+| Real-time           | ASP.NET Core SignalR                                                                |
+| Database            | PostgreSQL via EF Core + Npgsql                                                     |
+| Auth                | JWT bearer,`PasswordHasher<User>`for passwords                                    |
+| Mobile / web client | Flutter,`flutter_riverpod`,`dio`,`flutter_secure_storage`,`signalr_netcore` |
+
+---
+
+## Project structure
+
+Adjust folder names to match your repository; the namespaces below are what the code uses.
+
+```
+API/                          ASP.NET Core project (root namespace: API)
+├── Controllers/
+│   ├── AuthController.cs     register, login, me
+│   ├── UsersController.cs    list / search / get users
+│   └── ChatController.cs     conversations, history, attachments
+├── Data/
+│   └── AppDbContext.cs       EF Core context + Fluent API mapping
+├── DTOs/
+│   ├── AuthDtos.cs           RegisterRequest, LoginRequest, UserDto, AuthResponse
+│   └── ChatDtos.cs           MessageDto, ConversationDto, SendMessageRequest, ...
+├── Entities/
+│   └── Entities.cs           User, Conversation, ConversationMember,
+│                             Message, MessageReceipt, Attachment
+├── Hubs/
+│   └── ChatHub.cs            SignalR hub + PresenceTracker
+├── Services/
+│   ├── ChatService.cs        IChatService: conversations, messages, receipts, presence
+│   └── TokenService.cs       ITokenService: JWT creation
+└── Program.cs
+
+frontend/                     Flutter app
+└── lib/
+    ├── main.dart
+    └── core/
+        ├── constants/        api_constants.dart
+        ├── models/           user, auth_response, message, conversation
+        ├── network/          api_client.dart (Dio + auth interceptor), api_error.dart
+        ├── providers/        auth, users, chat (Riverpod ChangeNotifierProviders)
+        ├── screens/          login, register, home (user list), chat
+        ├── services/         auth, user, chat (REST), chat_hub_service (SignalR), token_storage
+        ├── utils/            date_utils.dart
+        └── widgets/          auth_text_field, user_avatar
+```
+
+---
+
+## Getting started
+
+### Prerequisites
+
+* [.NET 8 SDK](https://dotnet.microsoft.com/download)
+* PostgreSQL 13+
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (Dart 3)
+* `dotnet-ef` tool: `dotnet tool install --global dotnet-ef`
+
+### 1. Backend
+
+1. Add packages if your project doesn't reference them yet:
+
+   ```bash
+   dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+   dotnet add package Microsoft.EntityFrameworkCore.Design
+   dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+   dotnet add package Swashbuckle.AspNetCore
+   ```
+2. Configure `appsettings.Development.json`:
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Host=localhost;Port=5432;Database=chatapp;Username=postgres;Password=your_password"
+     },
+     "Jwt": {
+       "Key": "replace-with-a-long-random-secret-at-least-32-chars",
+       "Issuer": "API",
+       "Audience": "API-Clients",
+       "ExpiryMinutes": 120
+     }
+   }
+   ```
+
+   Keep the real `Jwt:Key` out of source control (user-secrets or environment variables).
+3. Create the database schema:
+
+   ```bash
+   dotnet ef migrations add InitialChatSchema
+   dotnet ef database update
+   ```
+4. Make sure the API listens on `https://localhost:5001` (or change the Flutter constants), then run it:
+
+   ```bash
+   dotnet run
+   ```
+
+   Swagger UI is available in Development at `/swagger`.
+5. Set your front-end origin in the CORS policy in `Program.cs` (`WithOrigins(...)`). It is currently `http://localhost:4200`. This matters for Flutter **web**; native mobile apps are not subject to CORS.
+
+### 2. Frontend
+
+```bash
+cd frontend
+flutter pub get
+flutter pub add signalr_netcore   # if not already in pubspec.yaml
+flutter run
+```
+
+Edit `lib/core/constants/api_constants.dart`:
+
+```dart
+static const String baseUrl = 'https://localhost:5001/api';
+static const String hubUrl  = 'https://localhost:5001/hubs/chat';   // NOT under /api
+```
+
+* **Android emulator:**`localhost` is the emulator itself. Use `10.0.2.2` instead.
+* **Physical device:** use your computer's LAN IP.
+* **Dev HTTPS certificate:** run `dotnet dev-certs https --trust`. On Android/desktop you may also need an `HttpOverrides` in `main.dart` for development builds only.
+
+### Try it
+
+1. Run the API and start the app on two devices/emulators (or a device plus Flutter web).
+2. Register two different users.
+3. From one user's list, tap the other user and send a message.
+4. The other user's list shows a bell with a count; opening the chat clears it.
+
+---
+
+## API reference
+
+All endpoints except register and login require `Authorization: Bearer <token>`. Property names are camelCase in JSON.
+
+### Auth: `api/auth`
+
+| Method | Route         | Body                                                 | Result                                                                |
+| ------ | ------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| POST   | `/register` | `{ username, email, password }`(password 8+ chars) | `201` `{ token, expiresAt, user }`;`409`if username/email taken |
+| POST   | `/login`    | `{ usernameOrEmail, password }`                    | `200` `{ token, expiresAt, user }`;`401`on bad credentials      |
+| GET    | `/me`       | none                                                 | Current `{ id, username, email, profileImage }`                     |
+
+### Users: `api/users`
+
+| Method | Route     | Notes                                                                                                                       |
+| ------ | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/`     | `?search=&page=1&pageSize=20`; excludes the current user. Returns `{ totalCount, page, pageSize, totalPages, users[] }` |
+| GET    | `/{id}` | Single user                                                                                                                 |
+
+### Chat: `api/chat`
+
+| Method | Route                                                    | Notes                                                                                                                           |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/conversations`                                       | Inbox: each item has `id`,`otherUserId`,`otherUsername`,`otherIsOnline`,`lastMessage`,**`unreadCount`**       |
+| POST   | `/conversations/direct/{otherUserId}`                  | Gets or creates the 1:1 conversation; returns `{ conversationId }`                                                            |
+| GET    | `/conversations/{conversationId}/messages`             | `?before=<UTC timestamp>&take=30`; returned oldest to newest. Pass the oldest loaded `sentAt`as `before`to page backwards |
+| POST   | `/conversations/{conversationId}/messages/attachments` | `multipart/form-data`:`files`(up to 10, 100 MB each, 500 MB total), optional `content`,`replyToMessageId`               |
+
+---
+
+## SignalR hub
+
+Endpoint: `/hubs/chat` (requires auth). Browsers and the Flutter client send the token as `?access_token=...`, which the API accepts for this path only.
+
+Messages are delivered with `Clients.Users(...)`, so every connection of a user receives them. No group management is needed for 1:1 chat.
+
+### Client to server
+
+| Method               | Arguments                                          | Purpose                                                                  |
+| -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `StartDirectChat`  | `otherUserId`                                    | Get or create the conversation; returns its id                           |
+| `SendMessage`      | `{ conversationId, content, replyToMessageId? }` | Validate membership, save, push to both users; returns the saved message |
+| `MessageDelivered` | `messageId`                                      | Mark one message delivered                                               |
+| `MarkRead`         | `conversationId`                                 | Mark all unread messages in the conversation read (also sets delivered)  |
+| `Typing`           | `conversationId`                                 | Typing indicator (throttle on the client)                                |
+
+### Server to client
+
+| Event                | Payload                                                     |
+| -------------------- | ----------------------------------------------------------- |
+| `ReceiveMessage`   | `MessageDto`                                              |
+| `MessageDelivered` | `{ messageId, conversationId, deliveredTo, deliveredAt }` |
+| `MessagesRead`     | `{ conversationId, readerId, readAt, messageIds[] }`      |
+| `ConversationRead` | `{ conversationId }`(to the reader's own devices)         |
+| `UserTyping`       | `{ conversationId, userId }`                              |
+| `PresenceChanged`  | `{ userId, isOnline, lastSeen }`                          |
+
+A user counts as online while at least one connection is open (tracked by `PresenceTracker`).
+
+---
+
+## Database
+
+| Table                   | Purpose                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| `Users`               | Account, password hash,`IsOnline`,`LastSeen`(unique username and email)              |
+| `Conversations`       | `IsGroup`, optional `Name`                                                           |
+| `ConversationMembers` | User in conversation (unique per pair)                                                   |
+| `Messages`            | Content, type,`SentAt`,`EditedAt`,`ReplyToMessageId`(self reference)               |
+| `MessageReceipts`     | One row per recipient per message:`DeliveredAt`,`ReadAt`; unread =`ReadAt IS NULL` |
+| `Attachments`         | File metadata linked to a message                                                        |
+
+Timestamps are stored and sent as UTC. The client converts them to local time.
+
+---
+
+## Security notes
+
+* Passwords are hashed with ASP.NET's `PasswordHasher<User>`; login failures return the same message for unknown user and wrong password.
+* Every chat operation checks that the caller is a member of the conversation.
+* Add rate limiting (`AddRateLimiter`) on `/api/auth/*` before exposing the API publicly.
+* Use a strong, secret `Jwt:Key` and HTTPS in production.
+* Uploaded attachments are stored under `App_Data/ChatAttachments` with generated file names.
+
+---
+
+## Known limitations
+
+* Group chats: the schema supports them (`IsGroup`), but the hub, service and UI are 1:1 only.
+* Attachments: the upload endpoint exists, but there is no download endpoint and no attachment UI in the Flutter app yet. Attachment messages sent through REST also need a `ReceiveMessage` push from the controller for the recipient to see them live.
+* Sent / delivered / read ticks: receipts are stored and events are emitted, but history responses don't include receipt status, so ticks are not shown yet.
+* Opening a chat for the first time from two sides at the same moment could create duplicate conversations. A unique key on the user pair would prevent it.
+* Auto-login: the token is stored securely, but the app currently always starts at the login screen.
+
+---
+
+## Troubleshooting
+
+| Symptom                                                      | Likely cause                                                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| App can't reach the API on Android                           | `localhost`in `api_constants.dart`; use `10.0.2.2`or a LAN IP                                                       |
+| Handshake / certificate errors                               | Dev HTTPS cert not trusted (`dotnet dev-certs https --trust`)                                                           |
+| SignalR connects then returns 401                            | Token missing the `NameIdentifier`claim, or hub path differs from `/hubs/chat`in the JWT `OnMessageReceived`handler |
+| CORS error in Flutter web                                    | Add the web origin to `WithOrigins(...)`;`AllowCredentials()`is required for SignalR                                  |
+| `Cannot write DateTime with Kind=Local`when paging history | Convert `before`with `ToUniversalTime()`in `GetMessagesAsync`                                                       |
+| `ExecuteUpdateAsync`not found                              | Needs EF Core 7 or later                                                                                                  |
+| Flutter:`Undefined class 'ChatProvider'`                   | `providers/chat_provider.dart`missing or in the wrong folder                                                            |
+
+# Chat App
+
+A real-time one-to-one chat application.
+
+* **Backend:** ASP.NET Core 8 Web API + SignalR + EF Core (PostgreSQL), JWT authentication
+* **Frontend:** Flutter (Riverpod, Dio, SignalR client)
+
+Users register and log in, see a searchable list of everyone else, and tap a user to chat in real time. The list shows who is online and puts a notification bell with a count next to users who sent unread messages.
+
+---
+
+## Features
+
+* Register / login with username **or** email and password (JWT)
+* Searchable, paginated user list with live online / last-seen status
+* 1:1 conversations, created on demand and reused afterwards
+* Real-time messaging over SignalR (all of a user's devices stay in sync)
+* Message history with "load older messages" paging
+* Typing indicator
+* Delivered / read receipts stored per recipient (`MessageReceipts`)
+* Unread count per conversation, shown as a bell + badge on the home screen
+* Enter sends the message
+* File attachment upload endpoint (see [Known limitations](https://claude.ai/chat/194c5520-de78-4071-8fe4-4759c02519c0#known-limitations))
+
+---
+
+## Tech stack
+
+| Layer               | Technology                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| API                 | .NET 8, ASP.NET Core Web API                                                        |
+| Real-time           | ASP.NET Core SignalR                                                                |
+| Database            | PostgreSQL via EF Core + Npgsql                                                     |
+| Auth                | JWT bearer,`PasswordHasher<User>`for passwords                                    |
+| Mobile / web client | Flutter,`flutter_riverpod`,`dio`,`flutter_secure_storage`,`signalr_netcore` |
+
+---
+
+## Project structure
+
+Adjust folder names to match your repository; the namespaces below are what the code uses.
+
+```
+API/                          ASP.NET Core project (root namespace: API)
+├── Controllers/
+│   ├── AuthController.cs     register, login, me
+│   ├── UsersController.cs    list / search / get users
+│   └── ChatController.cs     conversations, history, attachments
+├── Data/
+│   └── AppDbContext.cs       EF Core context + Fluent API mapping
+├── DTOs/
+│   ├── AuthDtos.cs           RegisterRequest, LoginRequest, UserDto, AuthResponse
+│   └── ChatDtos.cs           MessageDto, ConversationDto, SendMessageRequest, ...
+├── Entities/
+│   └── Entities.cs           User, Conversation, ConversationMember,
+│                             Message, MessageReceipt, Attachment
+├── Hubs/
+│   └── ChatHub.cs            SignalR hub + PresenceTracker
+├── Services/
+│   ├── ChatService.cs        IChatService: conversations, messages, receipts, presence
+│   └── TokenService.cs       ITokenService: JWT creation
+└── Program.cs
+
+frontend/                     Flutter app
+└── lib/
+    ├── main.dart
+    └── core/
+        ├── constants/        api_constants.dart
+        ├── models/           user, auth_response, message, conversation
+        ├── network/          api_client.dart (Dio + auth interceptor), api_error.dart
+        ├── providers/        auth, users, chat (Riverpod ChangeNotifierProviders)
+        ├── screens/          login, register, home (user list), chat
+        ├── services/         auth, user, chat (REST), chat_hub_service (SignalR), token_storage
+        ├── utils/            date_utils.dart
+        └── widgets/          auth_text_field, user_avatar
+```
+
+---
+
+## Getting started
+
+### Prerequisites
+
+* [.NET 8 SDK](https://dotnet.microsoft.com/download)
+* PostgreSQL 13+
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (Dart 3)
+* `dotnet-ef` tool: `dotnet tool install --global dotnet-ef`
+
+### 1. Backend
+
+1. Add packages if your project doesn't reference them yet:
+
+   ```bash
+   dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+   dotnet add package Microsoft.EntityFrameworkCore.Design
+   dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+   dotnet add package Swashbuckle.AspNetCore
+   ```
+2. Configure `appsettings.Development.json`:
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Host=localhost;Port=5432;Database=chatapp;Username=postgres;Password=your_password"
+     },
+     "Jwt": {
+       "Key": "replace-with-a-long-random-secret-at-least-32-chars",
+       "Issuer": "API",
+       "Audience": "API-Clients",
+       "ExpiryMinutes": 120
+     }
+   }
+   ```
+
+   Keep the real `Jwt:Key` out of source control (user-secrets or environment variables).
+3. Create the database schema:
+
+   ```bash
+   dotnet ef migrations add InitialChatSchema
+   dotnet ef database update
+   ```
+4. Make sure the API listens on `https://localhost:5001` (or change the Flutter constants), then run it:
+
+   ```bash
+   dotnet run
+   ```
+
+   Swagger UI is available in Development at `/swagger`.
+5. Set your front-end origin in the CORS policy in `Program.cs` (`WithOrigins(...)`). It is currently `http://localhost:4200`. This matters for Flutter **web**; native mobile apps are not subject to CORS.
+
+### 2. Frontend
+
+```bash
+cd frontend
+flutter pub get
+flutter pub add signalr_netcore   # if not already in pubspec.yaml
+flutter run
+```
+
+Edit `lib/core/constants/api_constants.dart`:
+
+```dart
+static const String baseUrl = 'https://localhost:5001/api';
+static const String hubUrl  = 'https://localhost:5001/hubs/chat';   // NOT under /api
+```
+
+* **Android emulator:**`localhost` is the emulator itself. Use `10.0.2.2` instead.
+* **Physical device:** use your computer's LAN IP.
+* **Dev HTTPS certificate:** run `dotnet dev-certs https --trust`. On Android/desktop you may also need an `HttpOverrides` in `main.dart` for development builds only.
+
+### Try it
+
+1. Run the API and start the app on two devices/emulators (or a device plus Flutter web).
+2. Register two different users.
+3. From one user's list, tap the other user and send a message.
+4. The other user's list shows a bell with a count; opening the chat clears it.
+
+---
+
+## API reference
+
+All endpoints except register and login require `Authorization: Bearer <token>`. Property names are camelCase in JSON.
+
+### Auth: `api/auth`
+
+| Method | Route         | Body                                                 | Result                                                                |
+| ------ | ------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| POST   | `/register` | `{ username, email, password }`(password 8+ chars) | `201` `{ token, expiresAt, user }`;`409`if username/email taken |
+| POST   | `/login`    | `{ usernameOrEmail, password }`                    | `200` `{ token, expiresAt, user }`;`401`on bad credentials      |
+| GET    | `/me`       | none                                                 | Current `{ id, username, email, profileImage }`                     |
+
+### Users: `api/users`
+
+| Method | Route     | Notes                                                                                                                       |
+| ------ | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/`     | `?search=&page=1&pageSize=20`; excludes the current user. Returns `{ totalCount, page, pageSize, totalPages, users[] }` |
+| GET    | `/{id}` | Single user                                                                                                                 |
+
+### Chat: `api/chat`
+
+| Method | Route                                                    | Notes                                                                                                                           |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/conversations`                                       | Inbox: each item has `id`,`otherUserId`,`otherUsername`,`otherIsOnline`,`lastMessage`,**`unreadCount`**       |
+| POST   | `/conversations/direct/{otherUserId}`                  | Gets or creates the 1:1 conversation; returns `{ conversationId }`                                                            |
+| GET    | `/conversations/{conversationId}/messages`             | `?before=<UTC timestamp>&take=30`; returned oldest to newest. Pass the oldest loaded `sentAt`as `before`to page backwards |
+| POST   | `/conversations/{conversationId}/messages/attachments` | `multipart/form-data`:`files`(up to 10, 100 MB each, 500 MB total), optional `content`,`replyToMessageId`               |
+
+---
+
+## SignalR hub
+
+Endpoint: `/hubs/chat` (requires auth). Browsers and the Flutter client send the token as `?access_token=...`, which the API accepts for this path only.
+
+Messages are delivered with `Clients.Users(...)`, so every connection of a user receives them. No group management is needed for 1:1 chat.
+
+### Client to server
+
+| Method               | Arguments                                          | Purpose                                                                  |
+| -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `StartDirectChat`  | `otherUserId`                                    | Get or create the conversation; returns its id                           |
+| `SendMessage`      | `{ conversationId, content, replyToMessageId? }` | Validate membership, save, push to both users; returns the saved message |
+| `MessageDelivered` | `messageId`                                      | Mark one message delivered                                               |
+| `MarkRead`         | `conversationId`                                 | Mark all unread messages in the conversation read (also sets delivered)  |
+| `Typing`           | `conversationId`                                 | Typing indicator (throttle on the client)                                |
+
+### Server to client
+
+| Event                | Payload                                                     |
+| -------------------- | ----------------------------------------------------------- |
+| `ReceiveMessage`   | `MessageDto`                                              |
+| `MessageDelivered` | `{ messageId, conversationId, deliveredTo, deliveredAt }` |
+| `MessagesRead`     | `{ conversationId, readerId, readAt, messageIds[] }`      |
+| `ConversationRead` | `{ conversationId }`(to the reader's own devices)         |
+| `UserTyping`       | `{ conversationId, userId }`                              |
+| `PresenceChanged`  | `{ userId, isOnline, lastSeen }`                          |
+
+A user counts as online while at least one connection is open (tracked by `PresenceTracker`).
+
+---
+
+## Database
+
+| Table                   | Purpose                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| `Users`               | Account, password hash,`IsOnline`,`LastSeen`(unique username and email)              |
+| `Conversations`       | `IsGroup`, optional `Name`                                                           |
+| `ConversationMembers` | User in conversation (unique per pair)                                                   |
+| `Messages`            | Content, type,`SentAt`,`EditedAt`,`ReplyToMessageId`(self reference)               |
+| `MessageReceipts`     | One row per recipient per message:`DeliveredAt`,`ReadAt`; unread =`ReadAt IS NULL` |
+| `Attachments`         | File metadata linked to a message                                                        |
+
+Timestamps are stored and sent as UTC. The client converts them to local time.
+
+---
+
+## Security notes
+
+* Passwords are hashed with ASP.NET's `PasswordHasher<User>`; login failures return the same message for unknown user and wrong password.
+* Every chat operation checks that the caller is a member of the conversation.
+* Add rate limiting (`AddRateLimiter`) on `/api/auth/*` before exposing the API publicly.
+* Use a strong, secret `Jwt:Key` and HTTPS in production.
+* Uploaded attachments are stored under `App_Data/ChatAttachments` with generated file names.
+
+---
+
+## Known limitations
+
+* Group chats: the schema supports them (`IsGroup`), but the hub, service and UI are 1:1 only.
+* Attachments: the upload endpoint exists, but there is no download endpoint and no attachment UI in the Flutter app yet. Attachment messages sent through REST also need a `ReceiveMessage` push from the controller for the recipient to see them live.
+* Sent / delivered / read ticks: receipts are stored and events are emitted, but history responses don't include receipt status, so ticks are not shown yet.
+* Opening a chat for the first time from two sides at the same moment could create duplicate conversations. A unique key on the user pair would prevent it.
+* Auto-login: the token is stored securely, but the app currently always starts at the login screen.
+
+---
+
+## Troubleshooting
+
+| Symptom                                                      | Likely cause                                                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| App can't reach the API on Android                           | `localhost`in `api_constants.dart`; use `10.0.2.2`or a LAN IP                                                       |
+| Handshake / certificate errors                               | Dev HTTPS cert not trusted (`dotnet dev-certs https --trust`)                                                           |
+| SignalR connects then returns 401                            | Token missing the `NameIdentifier`claim, or hub path differs from `/hubs/chat`in the JWT `OnMessageReceived`handler |
+| CORS error in Flutter web                                    | Add the web origin to `WithOrigins(...)`;`AllowCredentials()`is required for SignalR                                  |
+| `Cannot write DateTime with Kind=Local`when paging history | Convert `before`with `ToUniversalTime()`in `GetMessagesAsync`                                                       |
+| `ExecuteUpdateAsync`not found                              | Needs EF Core 7 or later                                                                                                  |
+| Flutter:`Undefined class 'ChatProvider'`                   | `providers/chat_provider.dart`missing or in the wrong folder                                                            |
+
+# Chat App
+
+A real-time one-to-one chat application.
+
+* **Backend:** ASP.NET Core 8 Web API + SignalR + EF Core (PostgreSQL), JWT authentication
+* **Frontend:** Flutter (Riverpod, Dio, SignalR client)
+
+Users register and log in, see a searchable list of everyone else, and tap a user to chat in real time. The list shows who is online and puts a notification bell with a count next to users who sent unread messages.
+
+---
+
+## Features
+
+* Register / login with username **or** email and password (JWT)
+* Searchable, paginated user list with live online / last-seen status
+* 1:1 conversations, created on demand and reused afterwards
+* Real-time messaging over SignalR (all of a user's devices stay in sync)
+* Message history with "load older messages" paging
+* Typing indicator
+* Delivered / read receipts stored per recipient (`MessageReceipts`)
+* Unread count per conversation, shown as a bell + badge on the home screen
+* Enter sends the message
+* File attachment upload endpoint (see [Known limitations](https://claude.ai/chat/194c5520-de78-4071-8fe4-4759c02519c0#known-limitations))
+
+---
+
+## Tech stack
+
+| Layer               | Technology                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| API                 | .NET 8, ASP.NET Core Web API                                                        |
+| Real-time           | ASP.NET Core SignalR                                                                |
+| Database            | PostgreSQL via EF Core + Npgsql                                                     |
+| Auth                | JWT bearer,`PasswordHasher<User>`for passwords                                    |
+| Mobile / web client | Flutter,`flutter_riverpod`,`dio`,`flutter_secure_storage`,`signalr_netcore` |
+
+---
+
+## Project structure
+
+Adjust folder names to match your repository; the namespaces below are what the code uses.
+
+```
+API/                          ASP.NET Core project (root namespace: API)
+├── Controllers/
+│   ├── AuthController.cs     register, login, me
+│   ├── UsersController.cs    list / search / get users
+│   └── ChatController.cs     conversations, history, attachments
+├── Data/
+│   └── AppDbContext.cs       EF Core context + Fluent API mapping
+├── DTOs/
+│   ├── AuthDtos.cs           RegisterRequest, LoginRequest, UserDto, AuthResponse
+│   └── ChatDtos.cs           MessageDto, ConversationDto, SendMessageRequest, ...
+├── Entities/
+│   └── Entities.cs           User, Conversation, ConversationMember,
+│                             Message, MessageReceipt, Attachment
+├── Hubs/
+│   └── ChatHub.cs            SignalR hub + PresenceTracker
+├── Services/
+│   ├── ChatService.cs        IChatService: conversations, messages, receipts, presence
+│   └── TokenService.cs       ITokenService: JWT creation
+└── Program.cs
+
+frontend/                     Flutter app
+└── lib/
+    ├── main.dart
+    └── core/
+        ├── constants/        api_constants.dart
+        ├── models/           user, auth_response, message, conversation
+        ├── network/          api_client.dart (Dio + auth interceptor), api_error.dart
+        ├── providers/        auth, users, chat (Riverpod ChangeNotifierProviders)
+        ├── screens/          login, register, home (user list), chat
+        ├── services/         auth, user, chat (REST), chat_hub_service (SignalR), token_storage
+        ├── utils/            date_utils.dart
+        └── widgets/          auth_text_field, user_avatar
+```
+
+---
+
+## Getting started
+
+### Prerequisites
+
+* [.NET 8 SDK](https://dotnet.microsoft.com/download)
+* PostgreSQL 13+
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (Dart 3)
+* `dotnet-ef` tool: `dotnet tool install --global dotnet-ef`
+
+### 1. Backend
+
+1. Add packages if your project doesn't reference them yet:
+
+   ```bash
+   dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+   dotnet add package Microsoft.EntityFrameworkCore.Design
+   dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+   dotnet add package Swashbuckle.AspNetCore
+   ```
+2. Configure `appsettings.Development.json`:
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Host=localhost;Port=5432;Database=chatapp;Username=postgres;Password=your_password"
+     },
+     "Jwt": {
+       "Key": "replace-with-a-long-random-secret-at-least-32-chars",
+       "Issuer": "API",
+       "Audience": "API-Clients",
+       "ExpiryMinutes": 120
+     }
+   }
+   ```
+
+   Keep the real `Jwt:Key` out of source control (user-secrets or environment variables).
+3. Create the database schema:
+
+   ```bash
+   dotnet ef migrations add InitialChatSchema
+   dotnet ef database update
+   ```
+4. Make sure the API listens on `https://localhost:5001` (or change the Flutter constants), then run it:
+
+   ```bash
+   dotnet run
+   ```
+
+   Swagger UI is available in Development at `/swagger`.
+5. Set your front-end origin in the CORS policy in `Program.cs` (`WithOrigins(...)`). It is currently `http://localhost:4200`. This matters for Flutter **web**; native mobile apps are not subject to CORS.
+
+### 2. Frontend
+
+```bash
+cd frontend
+flutter pub get
+flutter pub add signalr_netcore   # if not already in pubspec.yaml
+flutter run
+```
+
+Edit `lib/core/constants/api_constants.dart`:
+
+```dart
+static const String baseUrl = 'https://localhost:5001/api';
+static const String hubUrl  = 'https://localhost:5001/hubs/chat';   // NOT under /api
+```
+
+* **Android emulator:**`localhost` is the emulator itself. Use `10.0.2.2` instead.
+* **Physical device:** use your computer's LAN IP.
+* **Dev HTTPS certificate:** run `dotnet dev-certs https --trust`. On Android/desktop you may also need an `HttpOverrides` in `main.dart` for development builds only.
+
+### Try it
+
+1. Run the API and start the app on two devices/emulators (or a device plus Flutter web).
+2. Register two different users.
+3. From one user's list, tap the other user and send a message.
+4. The other user's list shows a bell with a count; opening the chat clears it.
+
+---
+
+## API reference
+
+All endpoints except register and login require `Authorization: Bearer <token>`. Property names are camelCase in JSON.
+
+### Auth: `api/auth`
+
+| Method | Route         | Body                                                 | Result                                                                |
+| ------ | ------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| POST   | `/register` | `{ username, email, password }`(password 8+ chars) | `201` `{ token, expiresAt, user }`;`409`if username/email taken |
+| POST   | `/login`    | `{ usernameOrEmail, password }`                    | `200` `{ token, expiresAt, user }`;`401`on bad credentials      |
+| GET    | `/me`       | none                                                 | Current `{ id, username, email, profileImage }`                     |
+
+### Users: `api/users`
+
+| Method | Route     | Notes                                                                                                                       |
+| ------ | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/`     | `?search=&page=1&pageSize=20`; excludes the current user. Returns `{ totalCount, page, pageSize, totalPages, users[] }` |
+| GET    | `/{id}` | Single user                                                                                                                 |
+
+### Chat: `api/chat`
+
+| Method | Route                                                    | Notes                                                                                                                           |
+| ------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/conversations`                                       | Inbox: each item has `id`,`otherUserId`,`otherUsername`,`otherIsOnline`,`lastMessage`,**`unreadCount`**       |
+| POST   | `/conversations/direct/{otherUserId}`                  | Gets or creates the 1:1 conversation; returns `{ conversationId }`                                                            |
+| GET    | `/conversations/{conversationId}/messages`             | `?before=<UTC timestamp>&take=30`; returned oldest to newest. Pass the oldest loaded `sentAt`as `before`to page backwards |
+| POST   | `/conversations/{conversationId}/messages/attachments` | `multipart/form-data`:`files`(up to 10, 100 MB each, 500 MB total), optional `content`,`replyToMessageId`               |
+
+---
+
+## SignalR hub
+
+Endpoint: `/hubs/chat` (requires auth). Browsers and the Flutter client send the token as `?access_token=...`, which the API accepts for this path only.
+
+Messages are delivered with `Clients.Users(...)`, so every connection of a user receives them. No group management is needed for 1:1 chat.
+
+### Client to server
+
+| Method               | Arguments                                          | Purpose                                                                  |
+| -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `StartDirectChat`  | `otherUserId`                                    | Get or create the conversation; returns its id                           |
+| `SendMessage`      | `{ conversationId, content, replyToMessageId? }` | Validate membership, save, push to both users; returns the saved message |
+| `MessageDelivered` | `messageId`                                      | Mark one message delivered                                               |
+| `MarkRead`         | `conversationId`                                 | Mark all unread messages in the conversation read (also sets delivered)  |
+| `Typing`           | `conversationId`                                 | Typing indicator (throttle on the client)                                |
+
+### Server to client
+
+| Event                | Payload                                                     |
+| -------------------- | ----------------------------------------------------------- |
+| `ReceiveMessage`   | `MessageDto`                                              |
+| `MessageDelivered` | `{ messageId, conversationId, deliveredTo, deliveredAt }` |
+| `MessagesRead`     | `{ conversationId, readerId, readAt, messageIds[] }`      |
+| `ConversationRead` | `{ conversationId }`(to the reader's own devices)         |
+| `UserTyping`       | `{ conversationId, userId }`                              |
+| `PresenceChanged`  | `{ userId, isOnline, lastSeen }`                          |
+
+A user counts as online while at least one connection is open (tracked by `PresenceTracker`).
+
+---
+
+## Database
+
+| Table                   | Purpose                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| `Users`               | Account, password hash,`IsOnline`,`LastSeen`(unique username and email)              |
+| `Conversations`       | `IsGroup`, optional `Name`                                                           |
+| `ConversationMembers` | User in conversation (unique per pair)                                                   |
+| `Messages`            | Content, type,`SentAt`,`EditedAt`,`ReplyToMessageId`(self reference)               |
+| `MessageReceipts`     | One row per recipient per message:`DeliveredAt`,`ReadAt`; unread =`ReadAt IS NULL` |
+| `Attachments`         | File metadata linked to a message                                                        |
+
+Timestamps are stored and sent as UTC. The client converts them to local time.
+
+---
+
+## Security notes
+
+* Passwords are hashed with ASP.NET's `PasswordHasher<User>`; login failures return the same message for unknown user and wrong password.
+* Every chat operation checks that the caller is a member of the conversation.
+* Add rate limiting (`AddRateLimiter`) on `/api/auth/*` before exposing the API publicly.
+* Use a strong, secret `Jwt:Key` and HTTPS in production.
+* Uploaded attachments are stored under `App_Data/ChatAttachments` with generated file names.
+
+---
+
+## Known limitations
+
+* Group chats: the schema supports them (`IsGroup`), but the hub, service and UI are 1:1 only.
+* Attachments: the upload endpoint exists, but there is no download endpoint and no attachment UI in the Flutter app yet. Attachment messages sent through REST also need a `ReceiveMessage` push from the controller for the recipient to see them live.
+* Sent / delivered / read ticks: receipts are stored and events are emitted, but history responses don't include receipt status, so ticks are not shown yet.
+* Opening a chat for the first time from two sides at the same moment could create duplicate conversations. A unique key on the user pair would prevent it.
+* Auto-login: the token is stored securely, but the app currently always starts at the login screen.
+
+---
+
+## Troubleshooting
+
+| Symptom                                                      | Likely cause                                                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| App can't reach the API on Android                           | `localhost`in `api_constants.dart`; use `10.0.2.2`or a LAN IP                                                       |
+| Handshake / certificate errors                               | Dev HTTPS cert not trusted (`dotnet dev-certs https --trust`)                                                           |
+| SignalR connects then returns 401                            | Token missing the `NameIdentifier`claim, or hub path differs from `/hubs/chat`in the JWT `OnMessageReceived`handler |
+| CORS error in Flutter web                                    | Add the web origin to `WithOrigins(...)`;`AllowCredentials()`is required for SignalR                                  |
+| `Cannot write DateTime with Kind=Local`when paging history | Convert `before`with `ToUniversalTime()`in `GetMessagesAsync`                                                       |
+| `ExecuteUpdateAsync`not found                              | Needs EF Core 7 or later                                                                                                  |
+| Flutter:`Undefined class 'ChatProvider'`                   | `providers/chat_provider.dart`missing or in the wrong folder                                                            |
+
 Since you're familiar with Flutter and .NET 8 Web API, I'll structure this using:
 
 * **Frontend:** Flutter
@@ -153,18 +954,17 @@ chat_app/
 
 ### **Recommended Flutter packages**
 
-
-| Package                                                  | Purpose               |
-| -------------------------------------------------------- | --------------------- |
-| `<span>http</span>`or`<span>dio</span>`                  | REST API requests     |
-| `<span>signalr_netcore</span>`                           | Real-time messaging   |
-| `<span>provider</span>`or`<span>flutter_riverpod</span>` | State management      |
-| `<span>go_router</span>`                                 | Navigation            |
-| `<span>flutter_secure_storage</span>`                    | Store JWT securely    |
-| `<span>image_picker</span>`                              | Select images         |
-| `<span>file_picker</span>`                               | Select documents      |
-| `<span>cached_network_image</span>`                      | Display cached images |
-| `<span>firebase_messaging</span>`                        | Push notifications    |
+| Package                                                       | Purpose               |
+| ------------------------------------------------------------- | --------------------- |
+| `<span>http</span>`or `<span>dio</span>`                  | REST API requests     |
+| `<span>signalr_netcore</span>`                              | Real-time messaging   |
+| `<span>provider</span>`or `<span>flutter_riverpod</span>` | State management      |
+| `<span>go_router</span>`                                    | Navigation            |
+| `<span>flutter_secure_storage</span>`                       | Store JWT securely    |
+| `<span>image_picker</span>`                                 | Select images         |
+| `<span>file_picker</span>`                                  | Select documents      |
+| `<span>cached_network_image</span>`                         | Display cached images |
+| `<span>firebase_messaging</span>`                           | Push notifications    |
 
 I recommend Riverpod for state management.
 
@@ -217,7 +1017,6 @@ These are the main tables you will need.
 
 **Users**
 
-
 | Column       | Type      |
 | ------------ | --------- |
 | Id           | UUID      |
@@ -230,7 +1029,6 @@ These are the main tables you will need.
 
 **Conversations**
 
-
 | Column    | Type      |
 | --------- | --------- |
 | Id        | UUID      |
@@ -240,7 +1038,6 @@ These are the main tables you will need.
 
 **ConversationMembers**
 
-
 | Column         | Type      |
 | -------------- | --------- |
 | Id             | UUID      |
@@ -249,7 +1046,6 @@ These are the main tables you will need.
 | JoinedAt       | TIMESTAMP |
 
 **Messages**
-
 
 | Column           | Type      |
 | ---------------- | --------- |
@@ -264,7 +1060,6 @@ These are the main tables you will need.
 
 **MessageReceipts**
 
-
 | Column      | Type      |
 | ----------- | --------- |
 | Id          | UUID      |
@@ -274,7 +1069,6 @@ These are the main tables you will need.
 | ReadAt      | TIMESTAMP |
 
 **Attachments**
-
 
 | Column    | Type    |
 | --------- | ------- |
@@ -374,9 +1168,8 @@ await connection.invoke(
 
 Your REST API can follow this structure:
 
-
-| Method | Endpoint                                      | Purpose             |
-| ------ | --------------------------------------------- | ------------------- |
+| Method | Endpoint                                        | Purpose             |
+| ------ | ----------------------------------------------- | ------------------- |
 | POST   | `<span>/api/auth/register</span>`             | Register            |
 | POST   | `<span>/api/auth/login</span>`                | Login               |
 | GET    | `<span>/api/users</span>`                     | Get users           |
@@ -396,7 +1189,6 @@ SignalR Hub:
 ```
 
 SignalR events:
-
 
 | Event            | Description         |
 | ---------------- | ------------------- |
@@ -446,7 +1238,6 @@ Profile picture, username and settings.
 
 Here is the order I recommend following.
 
-
 | Step | Development task                 | Priority |
 | ---- | -------------------------------- | -------- |
 | 1    | Create Flutter project           | High     |
@@ -465,7 +1256,6 @@ Here is the order I recommend following.
 | 14   | Add push notifications           | Medium   |
 
 # **10. My recommended technology stack**
-
 
 | Layer             | Technology                 |
 | ----------------- | -------------------------- |

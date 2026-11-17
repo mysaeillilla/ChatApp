@@ -1,5 +1,7 @@
+
 namespace API.DTOs;
 
+// Message DTO
 public record MessageDto(
     Guid Id,
     Guid ConversationId,
@@ -9,8 +11,26 @@ public record MessageDto(
     string MessageType,
     DateTime SentAt,
     DateTime? EditedAt,
-    Guid? ReplyToMessageId);
+    Guid? ReplyToMessageId)
+{
+    public List<AttachmentDto> Attachments { get; set; } = new();
+}
 
+// Attachment DTO
+public class AttachmentDto
+{
+    public Guid Id { get; set; }
+
+    public string FileName { get; set; } = string.Empty;
+
+    public string FileType { get; set; } = "application/octet-stream";
+
+    public long FileSize { get; set; }
+
+    public string DownloadUrl { get; set; } = string.Empty;
+}
+
+// Conversation DTO
 public record ConversationDto(
     Guid Id,
     string? Name,
@@ -30,8 +50,19 @@ public record SendMessageRequest(
     string MessageType = "text");
 
 // Returned by the service after saving
-public record SentMessageResult(MessageDto Message, IReadOnlyList<Guid> MemberIds);
+public record SentMessageResult(
+    MessageDto Message,
+    IReadOnlyList<Guid> MemberIds);
 
-public record DeliveredResult(Guid MessageId, Guid ConversationId, Guid SenderId, DateTime DeliveredAt);
+public record DeliveredResult(
+    Guid MessageId,
+    Guid ConversationId,
+    Guid SenderId,
+    DateTime DeliveredAt);
 
-public record ReadResult(Guid ConversationId, Guid ReaderId, DateTime ReadAt, IReadOnlyList<Guid> MessageIds, IReadOnlyList<Guid> NotifyUserIds);
+public record ReadResult(
+    Guid ConversationId,
+    Guid ReaderId,
+    DateTime ReadAt,
+    IReadOnlyList<Guid> MessageIds,
+    IReadOnlyList<Guid> NotifyUserIds);

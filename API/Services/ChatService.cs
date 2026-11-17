@@ -1,54 +1,129 @@
+
 using API.Data;
 using API.DTOs;
 using API.Entities;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace API.Services;
 
 public interface IChatService
 {
-    Task<Guid> GetOrCreateDirectConversationAsync(Guid userId, Guid otherUserId, CancellationToken ct = default);
-    Task<IReadOnlyList<ConversationDto>> GetConversationsAsync(Guid userId, CancellationToken ct = default);
-    Task<IReadOnlyList<MessageDto>> GetMessagesAsync(Guid userId, Guid conversationId, DateTime? before, int take, CancellationToken ct = default);
-    Task<SentMessageResult> SaveMessageAsync(Guid senderId, SendMessageRequest request, CancellationToken ct = default);
-    Task<IReadOnlyList<Guid>> GetMemberIdsAsync(Guid userId, Guid conversationId, CancellationToken ct = default);
-    Task<IReadOnlyList<Guid>> GetContactIdsAsync(Guid userId, CancellationToken ct = default);
-    Task<DeliveredResult?> MarkDeliveredAsync(Guid userId, Guid messageId, CancellationToken ct = default);
-    Task<ReadResult> MarkReadAsync(Guid userId, Guid conversationId, CancellationToken ct = default);
-    Task<DateTime> SetPresenceAsync(Guid userId, bool isOnline, CancellationToken ct = default);
+    Task<Guid> GetOrCreateDirectConversationAsync(
+        Guid userId,
+        Guid otherUserId,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<ConversationDto>> GetConversationsAsync(
+        Guid userId,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<MessageDto>> GetMessagesAsync(
+        Guid userId,
+        Guid conversationId,
+        DateTime? before,
+        int take,
+        CancellationToken ct = default);
+
+    Task<SentMessageResult> SaveMessageAsync(
+        Guid senderId,
+        SendMessageRequest request,
+        CancellationToken ct = default);
+
+    Task<SentMessageResult> SaveMessageWithAttachmentsAsync(
+        Guid senderId,
+        SendMessageRequest request,
+        IReadOnlyCollection<Attachment> attachments,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<Guid>> GetMemberIdsAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<Guid>> GetContactIdsAsync(
+        Guid userId,
+        CancellationToken ct = default);
+
+    Task<DeliveredResult?> MarkDeliveredAsync(
+        Guid userId,
+        Guid messageId,
+        CancellationToken ct = default);
+
+    Task<ReadResult> MarkReadAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken ct = default);
+
+    Task<DateTime> SetPresenceAsync(
+        Guid userId,
+        bool isOnline,
+        CancellationToken ct = default);
 }
 
 public class ChatService : IChatService
 {
     private const int MaxContentLength = 4000;
+
     private readonly AppDbContext _db;
 
-    public ChatService(AppDbContext db) => _db = db;
+    public ChatService(AppDbContext db)
+    {
+        _db = db;
+    }
 
-    // ---------------------------------------------------------------
+    // -------------------------------------------------------
     // Conversations
-    // ---------------------------------------------------------------
+    // -------------------------------------------------------
 
-    public async Task<Guid> GetOrCreateDirectConversationAsync(Guid userId, Guid otherUserId, CancellationToken ct = default)
+    public async Task<Guid> GetOrCreateDirectConversationAsync(
+        Guid userId,
+        Guid otherUserId,
+        CancellationToken ct = default)
     {
         if (userId == otherUserId)
-            throw new ArgumentException("You cannot start a conversation with yourself.");
+        {
+            throw new ArgumentException(
+                "You cannot start a conversation with yourself.");
+        }
 
-        if (!await _db.Users.AnyAsync(u => u.Id == otherUserId, ct))
+        var currentUserExists = await _db.Users
+            .AnyAsync(u => u.Id == userId, ct);
+
+        if (!currentUserExists)
+        {
+            throw new KeyNotFoundException("Current user not found.");
+        }
+
+        var otherUserExists = await _db.Users
+            .AnyAsync(u => u.Id == otherUserId, ct);
+
+        if (!otherUserExists)
+        {
             throw new KeyNotFoundException("User not found.");
+        }
 
+        // Find an existing direct conversation.
         var existingId = await _db.Conversations
-            .Where(c => !c.IsGroup
-                        && c.Members.Count == 2
-                        && c.Members.Any(m => m.UserId == userId)
-                        && c.Members.Any(m => m.UserId == otherUserId))
+            .Where(c =>
+                !c.IsGroup &&
+                c.Members.Count() == 2 &&
+                c.Members.Any(m => m.UserId == userId) &&
+                c.Members.Any(m => m.UserId == otherUserId))
             .Select(c => (Guid?)c.Id)
             .FirstOrDefaultAsync(ct);
 
         if (existingId.HasValue)
+        {
             return existingId.Value;
+        }
 
         var now = DateTime.UtcNow;
+
         var conversation = new Conversation
         {
             Id = Guid.NewGuid(),
@@ -56,23 +131,36 @@ public class ChatService : IChatService
             CreatedAt = now
         };
 
-        foreach (var id in new[] { userId, otherUserId })
+        conversation.Members.Add(new ConversationMember
         {
-            conversation.Members.Add(new ConversationMember
-            {
-                Id = Guid.NewGuid(),
-                ConversationId = conversation.Id,
-                UserId = id,
-                JoinedAt = now
-            });
-        }
+            Id = Guid.NewGuid(),
+            ConversationId = conversation.Id,
+            UserId = userId,
+            JoinedAt = now
+        });
+
+        conversation.Members.Add(new ConversationMember
+        {
+            Id = Guid.NewGuid(),
+            ConversationId = conversation.Id,
+            UserId = otherUserId,
+            JoinedAt = now
+        });
 
         _db.Conversations.Add(conversation);
+
         await _db.SaveChangesAsync(ct);
+
         return conversation.Id;
     }
 
-    public async Task<IReadOnlyList<ConversationDto>> GetConversationsAsync(Guid userId, CancellationToken ct = default)
+    // -------------------------------------------------------
+    // Get conversations
+    // -------------------------------------------------------
+
+    public async Task<IReadOnlyList<ConversationDto>> GetConversationsAsync(
+        Guid userId,
+        CancellationToken ct = default)
     {
         var rows = await _db.ConversationMembers
             .AsNoTracking()
@@ -82,12 +170,23 @@ public class ChatService : IChatService
                 m.Conversation.Id,
                 m.Conversation.Name,
                 m.Conversation.IsGroup,
+
+                // Other conversation member.
                 Other = m.Conversation.Members
                     .Where(x => x.UserId != userId)
-                    .Select(x => new { x.User.Id, x.User.Username, x.User.ProfileImage, x.User.IsOnline })
+                    .Select(x => new
+                    {
+                        x.User.Id,
+                        x.User.Username,
+                        x.User.ProfileImage,
+                        x.User.IsOnline
+                    })
                     .FirstOrDefault(),
-                Last = m.Conversation.Messages
+
+                // Latest message in this conversation.
+                LatestMessage = m.Conversation.Messages
                     .OrderByDescending(x => x.SentAt)
+                    .ThenByDescending(x => x.Id)
                     .Select(x => new
                     {
                         x.Id,
@@ -97,16 +196,35 @@ public class ChatService : IChatService
                         x.MessageType,
                         x.SentAt,
                         x.EditedAt,
-                        x.ReplyToMessageId
+                        x.ReplyToMessageId,
+
+                        Attachments = x.Attachments
+                            .Select(a => new AttachmentDto
+                            {
+                                Id = a.Id,
+                                FileName = a.FileName,
+                                FileType = a.FileType,
+                                FileSize = a.FileSize,
+                                DownloadUrl =
+                                    $"/api/attachments/{a.Id}/download"
+                            })
+                            .ToList()
                     })
                     .FirstOrDefault(),
+
+                // Number of unread messages for this user.
                 Unread = _db.MessageReceipts.Count(r =>
-                    r.UserId == userId && r.ReadAt == null && r.Message.ConversationId == m.ConversationId)
+                    r.UserId == userId &&
+                    r.ReadAt == null &&
+                    r.Message.ConversationId == m.ConversationId)
             })
             .ToListAsync(ct);
 
         return rows
-            .OrderByDescending(r => r.Last != null ? r.Last.SentAt : DateTime.MinValue)
+            .OrderByDescending(r =>
+                r.LatestMessage != null
+                    ? r.LatestMessage.SentAt
+                    : DateTime.MinValue)
             .Select(r => new ConversationDto(
                 r.Id,
                 r.Name,
@@ -115,15 +233,35 @@ public class ChatService : IChatService
                 r.Other?.Username,
                 r.Other?.ProfileImage,
                 r.Other?.IsOnline ?? false,
-                r.Last == null
+
+                r.LatestMessage == null
                     ? null
-                    : new MessageDto(r.Last.Id, r.Id, r.Last.SenderId, r.Last.SenderName, r.Last.Content,
-                        r.Last.MessageType, r.Last.SentAt, r.Last.EditedAt, r.Last.ReplyToMessageId),
+                    : new MessageDto(
+                        r.LatestMessage.Id,
+                        r.Id,
+                        r.LatestMessage.SenderId,
+                        r.LatestMessage.SenderName,
+                        r.LatestMessage.Content,
+                        r.LatestMessage.MessageType,
+                        r.LatestMessage.SentAt,
+                        r.LatestMessage.EditedAt,
+                        r.LatestMessage.ReplyToMessageId)
+                    {
+                        Attachments = r.LatestMessage.Attachments
+                    },
+
                 r.Unread))
             .ToList();
     }
 
-    public async Task<IReadOnlyList<Guid>> GetMemberIdsAsync(Guid userId, Guid conversationId, CancellationToken ct = default)
+    // -------------------------------------------------------
+    // Membership
+    // -------------------------------------------------------
+
+    public async Task<IReadOnlyList<Guid>> GetMemberIdsAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken ct = default)
     {
         var memberIds = await _db.ConversationMembers
             .AsNoTracking()
@@ -132,31 +270,45 @@ public class ChatService : IChatService
             .ToListAsync(ct);
 
         if (!memberIds.Contains(userId))
-            throw new UnauthorizedAccessException("You are not a member of this conversation.");
+        {
+            throw new UnauthorizedAccessException(
+                "You are not a member of this conversation.");
+        }
 
         return memberIds;
     }
 
-    /// <summary>Everyone who shares at least one conversation with the user (used for presence updates).</summary>
-    public async Task<IReadOnlyList<Guid>> GetContactIdsAsync(Guid userId, CancellationToken ct = default)
+    // -------------------------------------------------------
+    // Contacts
+    // -------------------------------------------------------
+
+    public async Task<IReadOnlyList<Guid>> GetContactIdsAsync(
+        Guid userId,
+        CancellationToken ct = default)
     {
         return await _db.ConversationMembers
             .AsNoTracking()
-            .Where(m => m.UserId != userId
-                        && m.Conversation.Members.Any(x => x.UserId == userId))
+            .Where(m =>
+                m.UserId != userId &&
+                m.Conversation.Members.Any(x => x.UserId == userId))
             .Select(m => m.UserId)
             .Distinct()
             .ToListAsync(ct);
     }
 
-    // ---------------------------------------------------------------
-    // Messages
-    // ---------------------------------------------------------------
+    // -------------------------------------------------------
+    // Get messages
+    // -------------------------------------------------------
 
     public async Task<IReadOnlyList<MessageDto>> GetMessagesAsync(
-        Guid userId, Guid conversationId, DateTime? before, int take, CancellationToken ct = default)
+        Guid userId,
+        Guid conversationId,
+        DateTime? before,
+        int take,
+        CancellationToken ct = default)
     {
-        await GetMemberIdsAsync(userId, conversationId, ct); // membership check
+        // Verify that the current user belongs to this conversation.
+        await GetMemberIdsAsync(userId, conversationId, ct);
 
         take = Math.Clamp(take, 1, 100);
 
@@ -165,37 +317,141 @@ public class ChatService : IChatService
             .Where(m => m.ConversationId == conversationId);
 
         if (before.HasValue)
+        {
             query = query.Where(m => m.SentAt < before.Value);
+        }
 
         var items = await query
             .OrderByDescending(m => m.SentAt)
+            .ThenByDescending(m => m.Id)
             .Take(take)
             .Select(m => new MessageDto(
-                m.Id, m.ConversationId, m.SenderId, m.Sender.Username, m.Content,
-                m.MessageType, m.SentAt, m.EditedAt, m.ReplyToMessageId))
+                m.Id,
+                m.ConversationId,
+                m.SenderId,
+                m.Sender.Username,
+                m.Content,
+                m.MessageType,
+                m.SentAt,
+                m.EditedAt,
+                m.ReplyToMessageId)
+            {
+                Attachments = m.Attachments
+                    .Select(a => new AttachmentDto
+                    {
+                        Id = a.Id,
+                        FileName = a.FileName,
+                        FileType = a.FileType,
+                        FileSize = a.FileSize,
+                        DownloadUrl =
+                            $"/api/attachments/{a.Id}/download"
+                    })
+                    .ToList()
+            })
             .ToListAsync(ct);
 
-        items.Reverse(); // oldest -> newest for display
+        // Return messages in chronological order.
+        items.Reverse();
+
         return items;
     }
 
-    public async Task<SentMessageResult> SaveMessageAsync(Guid senderId, SendMessageRequest request, CancellationToken ct = default)
+    // -------------------------------------------------------
+    // Save normal text message
+    // -------------------------------------------------------
+
+    public Task<SentMessageResult> SaveMessageAsync(
+        Guid senderId,
+        SendMessageRequest request,
+        CancellationToken ct = default)
     {
-        var content = request.Content?.Trim();
-        if (string.IsNullOrEmpty(content))
-            throw new ArgumentException("Message cannot be empty.");
+        return SaveMessageInternalAsync(
+            senderId,
+            request,
+            Array.Empty<Attachment>(),
+            ct);
+    }
+
+    // -------------------------------------------------------
+    // Save message with attachments
+    // -------------------------------------------------------
+
+    public Task<SentMessageResult> SaveMessageWithAttachmentsAsync(
+        Guid senderId,
+        SendMessageRequest request,
+        IReadOnlyCollection<Attachment> attachments,
+        CancellationToken ct = default)
+    {
+        if (attachments == null || attachments.Count == 0)
+        {
+            throw new ArgumentException(
+                "At least one attachment is required.");
+        }
+
+        return SaveMessageInternalAsync(
+            senderId,
+            request,
+            attachments,
+            ct);
+    }
+
+    // -------------------------------------------------------
+    // Common message saving logic
+    // -------------------------------------------------------
+
+    private async Task<SentMessageResult> SaveMessageInternalAsync(
+        Guid senderId,
+        SendMessageRequest request,
+        IReadOnlyCollection<Attachment> attachments,
+        CancellationToken ct)
+    {
+        if (request == null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        var content = request.Content?.Trim() ?? string.Empty;
+
+        var messageType = string.IsNullOrWhiteSpace(request.MessageType)
+            ? "text"
+            : request.MessageType.Trim();
+
+        // Empty content is allowed only when attachments exist.
+        if (string.IsNullOrWhiteSpace(content) && attachments.Count == 0)
+        {
+            throw new ArgumentException(
+                "Message content cannot be empty.");
+        }
+
         if (content.Length > MaxContentLength)
-            throw new ArgumentException($"Message cannot exceed {MaxContentLength} characters.");
+        {
+            throw new ArgumentException(
+                $"Message cannot exceed {MaxContentLength} characters.");
+        }
 
-        var memberIds = await GetMemberIdsAsync(senderId, request.ConversationId, ct);
+        // Verify sender membership and get all conversation members.
+        var memberIds = await GetMemberIdsAsync(
+            senderId,
+            request.ConversationId,
+            ct);
 
+        // Validate reply target.
         if (request.ReplyToMessageId.HasValue)
         {
             var validReply = await _db.Messages.AnyAsync(
-                m => m.Id == request.ReplyToMessageId && m.ConversationId == request.ConversationId, ct);
+                m =>
+                    m.Id == request.ReplyToMessageId.Value &&
+                    m.ConversationId == request.ConversationId,
+                ct);
+
             if (!validReply)
-                throw new ArgumentException("The message you are replying to was not found in this conversation.");
+            {
+                throw new ArgumentException(
+                    "The message you are replying to was not found in this conversation.");
+            }
         }
+
+        var now = DateTime.UtcNow;
 
         var message = new Message
         {
@@ -203,23 +459,47 @@ public class ChatService : IChatService
             ConversationId = request.ConversationId,
             SenderId = senderId,
             Content = content,
-            MessageType = string.IsNullOrWhiteSpace(request.MessageType) ? "text" : request.MessageType,
-            SentAt = DateTime.UtcNow,
+            MessageType = messageType,
+            SentAt = now,
             ReplyToMessageId = request.ReplyToMessageId
         };
 
-        // One receipt per recipient (not for the sender)
-        foreach (var recipientId in memberIds.Where(id => id != senderId))
-        {
-            message.Receipts.Add(new MessageReceipt
+        // Create delivery/read receipts for recipients.
+        var receipts = memberIds
+            .Where(id => id != senderId)
+            .Select(recipientId => new MessageReceipt
             {
                 Id = Guid.NewGuid(),
                 MessageId = message.Id,
                 UserId = recipientId
-            });
+            })
+            .ToList();
+
+        // Associate attachment metadata with the new message.
+        var attachmentList = attachments.ToList();
+
+        foreach (var attachment in attachmentList)
+        {
+            attachment.Id = attachment.Id == Guid.Empty
+                ? Guid.NewGuid()
+                : attachment.Id;
+
+            attachment.MessageId = message.Id;
         }
 
         _db.Messages.Add(message);
+
+        if (receipts.Count > 0)
+        {
+            _db.MessageReceipts.AddRange(receipts);
+        }
+
+        if (attachmentList.Count > 0)
+        {
+            _db.Attachments.AddRange(attachmentList);
+        }
+
+        // Save message, receipts and attachments together.
         await _db.SaveChangesAsync(ct);
 
         var senderName = await _db.Users
@@ -227,67 +507,149 @@ public class ChatService : IChatService
             .Select(u => u.Username)
             .FirstAsync(ct);
 
-        var dto = new MessageDto(message.Id, message.ConversationId, senderId, senderName, message.Content,
-            message.MessageType, message.SentAt, message.EditedAt, message.ReplyToMessageId);
+        var dto = new MessageDto(
+            message.Id,
+            message.ConversationId,
+            senderId,
+            senderName,
+            message.Content,
+            message.MessageType,
+            message.SentAt,
+            message.EditedAt,
+            message.ReplyToMessageId)
+        {
+            Attachments = attachmentList
+                .Select(a => new AttachmentDto
+                {
+                    Id = a.Id,
+                    FileName = a.FileName,
+                    FileType = a.FileType,
+                    FileSize = a.FileSize,
+                    DownloadUrl =
+                        $"/api/attachments/{a.Id}/download"
+                })
+                .ToList()
+        };
 
         return new SentMessageResult(dto, memberIds);
     }
 
-    // ---------------------------------------------------------------
-    // Receipts
-    // ---------------------------------------------------------------
+    // -------------------------------------------------------
+    // Mark message as delivered
+    // -------------------------------------------------------
 
-    public async Task<DeliveredResult?> MarkDeliveredAsync(Guid userId, Guid messageId, CancellationToken ct = default)
+    public async Task<DeliveredResult?> MarkDeliveredAsync(
+        Guid userId,
+        Guid messageId,
+        CancellationToken ct = default)
     {
-        var pending = _db.MessageReceipts
-            .Where(r => r.MessageId == messageId && r.UserId == userId && r.DeliveredAt == null);
+        // Load the pending receipt as a tracked entity.
+        var receipt = await _db.MessageReceipts
+            .Include(r => r.Message)
+            .FirstOrDefaultAsync(r =>
+                r.MessageId == messageId &&
+                r.UserId == userId &&
+                r.DeliveredAt == null,
+                ct);
 
-        var info = await pending
-            .Select(r => new { r.Message.SenderId, r.Message.ConversationId })
-            .FirstOrDefaultAsync(ct);
-
-        if (info is null)
-            return null; // already delivered, or not a recipient
-
-        var now = DateTime.UtcNow;
-        await pending.ExecuteUpdateAsync(s => s.SetProperty(r => r.DeliveredAt, (DateTime?)now), ct);
-
-        return new DeliveredResult(messageId, info.ConversationId, info.SenderId, now);
-    }
-
-    public async Task<ReadResult> MarkReadAsync(Guid userId, Guid conversationId, CancellationToken ct = default)
-    {
-        var memberIds = await GetMemberIdsAsync(userId, conversationId, ct);
-
-        var unread = _db.MessageReceipts
-            .Where(r => r.UserId == userId && r.ReadAt == null && r.Message.ConversationId == conversationId);
-
-        var messageIds = await unread.Select(r => r.MessageId).ToListAsync(ct);
-        var now = DateTime.UtcNow;
-
-        if (messageIds.Count > 0)
+        if (receipt == null)
         {
-            await unread.ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.ReadAt, (DateTime?)now)
-                .SetProperty(r => r.DeliveredAt, r => r.DeliveredAt ?? now), ct);
+            // Already delivered or user is not a recipient.
+            return null;
         }
 
-        return new ReadResult(conversationId, userId, now, messageIds,
-            memberIds.Where(id => id != userId).ToList());
+        var now = DateTime.UtcNow;
+
+        receipt.DeliveredAt = now;
+
+        await _db.SaveChangesAsync(ct);
+
+        return new DeliveredResult(
+            messageId,
+            receipt.Message.ConversationId,
+            receipt.Message.SenderId,
+            now);
     }
 
-    // ---------------------------------------------------------------
-    // Presence
-    // ---------------------------------------------------------------
+    // -------------------------------------------------------
+    // Mark conversation messages as read
+    // -------------------------------------------------------
 
-    public async Task<DateTime> SetPresenceAsync(Guid userId, bool isOnline, CancellationToken ct = default)
+    public async Task<ReadResult> MarkReadAsync(
+        Guid userId,
+        Guid conversationId,
+        CancellationToken ct = default)
     {
+        var memberIds = await GetMemberIdsAsync(
+            userId,
+            conversationId,
+            ct);
+
+        // Load unread receipts as tracked entities.
+        var unread = await _db.MessageReceipts
+            .Where(r =>
+                r.UserId == userId &&
+                r.ReadAt == null &&
+                r.Message.ConversationId == conversationId)
+            .ToListAsync(ct);
+
+        var messageIds = unread
+            .Select(r => r.MessageId)
+            .ToList();
+
         var now = DateTime.UtcNow;
-        await _db.Users
-            .Where(u => u.Id == userId)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(u => u.IsOnline, isOnline)
-                .SetProperty(u => u.LastSeen, (DateTime?)now), ct);
+
+        foreach (var receipt in unread)
+        {
+            receipt.ReadAt = now;
+
+            if (receipt.DeliveredAt == null)
+            {
+                receipt.DeliveredAt = now;
+            }
+        }
+
+        if (unread.Count > 0)
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var notifyUserIds = memberIds
+            .Where(id => id != userId)
+            .ToList();
+
+        return new ReadResult(
+            conversationId,
+            userId,
+            now,
+            messageIds,
+            notifyUserIds);
+    }
+
+    // -------------------------------------------------------
+    // User presence
+    // -------------------------------------------------------
+
+    public async Task<DateTime> SetPresenceAsync(
+        Guid userId,
+        bool isOnline,
+        CancellationToken ct = default)
+    {
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+
+        if (user == null)
+        {
+            throw new KeyNotFoundException("User not found.");
+        }
+
+        var now = DateTime.UtcNow;
+
+        user.IsOnline = isOnline;
+        user.LastSeen = now;
+
+        await _db.SaveChangesAsync(ct);
+
         return now;
     }
 }
