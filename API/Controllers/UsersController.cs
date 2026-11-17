@@ -1,11 +1,12 @@
-using Microsoft.AspNetCore.Mvc;
+
+using API.Data;
+using API.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using API.Data;
 
 namespace API.Controllers;
-
 
 [ApiController]
 [Route("api/[controller]")]
@@ -21,35 +22,52 @@ public class UsersController : ControllerBase
 
     // GET: api/users
     // GET: api/users?search=saeil
+    // GET: api/users?page=1&pageSize=20
     [HttpGet]
     public async Task<IActionResult> GetAllUsers(
         [FromQuery] string? search,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
         var currentUserId =
             User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub");
 
+        if (!Guid.TryParse(currentUserId, out var userId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid user authentication."
+            });
+        }
+
+        // Base query
         var query = _context.Users
             .AsNoTracking()
-            .AsQueryable();
-
-        // Exclude currently logged-in user
-        if (Guid.TryParse(currentUserId, out var userId))
-        {
-            query = query.Where(u => u.Id != userId);
-        }
+            .Where(u => u.Id != userId);
 
         // Search by username or email
         if (!string.IsNullOrWhiteSpace(search))
         {
+            search = search.Trim();
+
             query = query.Where(u =>
                 u.Username.Contains(search) ||
                 u.Email.Contains(search));
         }
 
+        // Total records
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Pagination validation
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var users = await query
             .OrderBy(u => u.Username)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(u => new UserResponseDto
             {
                 Id = u.Id,
@@ -61,7 +79,15 @@ public class UsersController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(users);
+        return Ok(new
+        {
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(
+                (double)totalCount / pageSize),
+            users
+        });
     }
 
     // GET: api/users/{id}
@@ -85,13 +111,18 @@ public class UsersController : ControllerBase
             .FirstOrDefaultAsync(cancellationToken);
 
         if (user == null)
-            return NotFound(new { message = "User not found." });
+        {
+            return NotFound(new
+            {
+                message = "User not found."
+            });
+        }
 
         return Ok(user);
     }
 }
 
-// User response DTO
+// User Response DTO
 public class UserResponseDto
 {
     public Guid Id { get; set; }
